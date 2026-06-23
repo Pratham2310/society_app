@@ -1,0 +1,40 @@
+const mongoose=require("mongoose");
+const visitorRequestSchema=new mongoose.Schema({
+    societyId:{
+        type:mongoose.Types.ObjectId,
+        ref:"Society",
+        required:true
+    },
+    residentId:{
+        type:mongoose.Types.ObjectId,
+        ref:"User",
+        required:true
+    },
+    visitorName:{
+        type:String,
+        required:true
+    },
+    purpose:{
+        type:String,
+        enum:["delivery","guest","maintainance","other"],
+        required:true,
+        default:"other"
+    },
+    visitoryPhoto:String,
+    vehicleNumber:String,
+    vehiclePhoto:String,
+    messageToGaurd:String,
+    status:{
+        type:String,
+        enum:["pending","approved","rejected","fraud_reported","expired"],
+        default:"pending"
+    },
+    approvedAt:Date,
+    rejectedAt:Date,
+    fraudReported:{
+        type:Boolean,
+        default:false
+    },
+},{timestamps:true});
+
+module.exports=mongoose.model("VisitorRequest",visitorRequestSchema);
