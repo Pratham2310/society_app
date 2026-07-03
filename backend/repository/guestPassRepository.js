@@ -483,6 +483,175 @@ exports.updateMetadata = (
 
 };
 
+// =======================================================
+// ANALYTICS
+// =======================================================
+
+// Count By Status
+exports.countByStatus = (
+  societyId,
+  status
+) => {
+
+  return GuestPass.countDocuments({
+    societyId,
+    status,
+  });
+
+};
+
+// Count By Pass Type
+exports.countByPassType = (
+  societyId,
+  passType
+) => {
+
+  return GuestPass.countDocuments({
+    societyId,
+    passType,
+  });
+
+};
+
+// Count By Resident
+exports.countByResident = (
+  societyId,
+  residentId
+) => {
+
+  return GuestPass.countDocuments({
+    societyId,
+    residentId,
+  });
+
+};
+
+// Count Expiring Soon
+exports.countExpiringSoon = (
+  societyId,
+  date
+) => {
+
+  return GuestPass.countDocuments({
+
+    societyId,
+
+    status: "active",
+
+    expiryDate: {
+      $lte: date,
+    },
+
+  });
+
+};
+
+// Count Total Passes
+exports.countTotal = (
+  societyId
+) => {
+
+  return GuestPass.countDocuments({
+    societyId,
+  });
+
+};
+
+// =======================================================
+// UTILITIES
+// =======================================================
+
+// Exists By QR Token
+exports.existsByToken = (
+  token,
+  societyId
+) => {
+
+  return GuestPass.exists({
+    qrToken: token,
+    societyId,
+  });
+
+};
+
+// Exists By Id
+exports.existsById = (
+  id,
+  societyId
+) => {
+
+  return GuestPass.exists({
+    _id: id,
+    societyId,
+  });
+
+};
+
+// Find Latest Pass
+exports.findLatest = (
+  societyId
+) => {
+
+  return GuestPass.findOne({
+    societyId,
+  }).sort({
+    createdAt: -1,
+  });
+
+};
+
+// Find Oldest Pass
+exports.findOldest = (
+  societyId
+) => {
+
+  return GuestPass.findOne({
+    societyId,
+  }).sort({
+    createdAt: 1,
+  });
+
+};
+
+// =======================================================
+// ADMIN / SYSTEM
+// =======================================================
+
+// Archive Pass (Soft Archive)
+exports.archivePass = (
+  id,
+  societyId,
+  archivedBy
+) => {
+
+  return GuestPass.findOneAndUpdate(
+    {
+      _id: id,
+      societyId,
+    },
+    {
+      $set: {
+        status: "cancelled",
+        statusReason: "Archived",
+      },
+
+      $push: {
+        statusHistory: {
+          previousStatus: "active",
+          newStatus: "cancelled",
+          changedBy: archivedBy,
+          changedAt: new Date(),
+          reason: "Archived",
+        },
+      },
+    },
+    {
+      new: true,
+    }
+  );
+
+};
+
 
 
 
