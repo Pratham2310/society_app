@@ -129,17 +129,50 @@ const guestLogSchema = new mongoose.Schema({
 
 
   //remark
-  remarks:{
-    type:String,
-    trim:true,
-    default:null
+  remarks: [
+  {
+    message: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    addedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    addedAt: {
+      type: Date,
+      default: Date.now,
+    },
   },
+],
 
-  guardNotes:{
-    type:String,
-    trim:true,
-    default:null
+  // ======================================================
+// Guard Notes (Audit Trail)
+// ======================================================
+
+guardNotes: [
+  {
+    note: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 500,
+    },
+
+    addedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+
+    addedAt: {
+      type: Date,
+      default: Date.now,
+    },
   },
+  ],
 
   //future metadata
   metadata:{

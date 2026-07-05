@@ -263,11 +263,14 @@ exports.findOneTimePasses=(societyId)=>{
 // UPDATE METHODS
 // =======================================================
 
-// Update QR Information
-exports.updateQRCode = (
+// =======================================================
+// SAVE INITIAL QR CODE
+// =======================================================
+
+exports.saveInitialQRCode = (
   id,
   societyId,
-  data
+  qrCode
 ) => {
 
   return GuestPass.findOneAndUpdate(
@@ -277,8 +280,37 @@ exports.updateQRCode = (
     },
     {
       $set: {
-        qrCode: data.qrCode,
-        qrToken: data.qrToken,
+        qrCode,
+        lastQrGeneratedAt: new Date(),
+      },
+    },
+    {
+      new: true,
+    }
+  );
+
+};
+
+// =======================================================
+// REGENERATE QR CODE
+// =======================================================
+
+exports.regenerateQRCode = (
+  id,
+  societyId,
+  qrToken,
+  qrCode
+) => {
+
+  return GuestPass.findOneAndUpdate(
+    {
+      _id: id,
+      societyId,
+    },
+    {
+      $set: {
+        qrToken,
+        qrCode,
         lastQrGeneratedAt: new Date(),
       },
 
@@ -298,13 +330,38 @@ exports.updateQRCode = (
 // UPDATE PASS STATUS
 // =======================================================
 
+// =======================================================
+// UPDATE PASS STATUS
+// =======================================================
+
+
+// =======================================================
+// UPDATE PASS STATUS
+// =======================================================
+
 exports.updatePassStatus = (
   id,
   societyId,
-  status,
+  previousStatus,
+  newStatus,
   reason,
-  changedBy
+ changedBy
 ) => {
+
+  const updateData = {
+    status: newStatus,
+    statusReason: reason,
+    isActive: newStatus === "active",
+  };
+
+  if (newStatus === "expired") {
+    updateData.expiredAt = new Date();
+  }
+
+  if (newStatus === "cancelled") {
+    updateData.cancelledAt = new Date();
+    updateData.cancelledBy = changedBy;
+  }
 
   return GuestPass.findOneAndUpdate(
     {
@@ -312,24 +369,15 @@ exports.updatePassStatus = (
       societyId,
     },
     {
-      $set: {
-        status,
-        statusReason: reason,
-      },
+      $set: updateData,
 
       $push: {
         statusHistory: {
-
-          previousStatus: "$status",
-
-          newStatus: status,
-
+          previousStatus,
+          newStatus,
           reason,
-
           changedBy,
-
           changedAt: new Date(),
-
         },
       },
     },
@@ -339,6 +387,10 @@ exports.updatePassStatus = (
   );
 
 };
+
+// =======================================================
+// APPROVE PASS
+// =======================================================
 
 // =======================================================
 // APPROVE PASS
@@ -369,28 +421,20 @@ exports.approvePass = (
 };
 
 // =======================================================
-// UPDATE LAST SCAN
+// FIND BY QR TOKEN + ACTIVE
 // =======================================================
 
-exports.updateLastScanned = (
-  id,
-  societyId
+exports.findValidQRCode = (
+  societyId,
+  qrToken
 ) => {
 
-  return GuestPass.findOneAndUpdate(
-    {
-      _id: id,
-      societyId,
-    },
-    {
-      $set: {
-        lastScannedAt: new Date(),
-      },
-    },
-    {
-      new: true,
-    }
-  );
+  return GuestPass.findOne({
+    societyId,
+    qrToken,
+    status: "active",
+    isActive: true,
+  });
 
 };
 
@@ -617,11 +661,19 @@ exports.findOldest = (
 // ADMIN / SYSTEM
 // =======================================================
 
-// Archive Pass (Soft Archive)
+// =======================================================
+// ARCHIVE PASS
+// =======================================================
+
+// =======================================================
+// ARCHIVE PASS
+// =======================================================
+
 exports.archivePass = (
   id,
   societyId,
-  archivedBy
+  previousStatus,
+ archivedBy
 ) => {
 
   return GuestPass.findOneAndUpdate(
@@ -633,11 +685,14 @@ exports.archivePass = (
       $set: {
         status: "cancelled",
         statusReason: "Archived",
+        isActive: false,
+        cancelledAt: new Date(),
+        cancelledBy: archivedBy,
       },
 
       $push: {
         statusHistory: {
-          previousStatus: "active",
+          previousStatus,
           newStatus: "cancelled",
           changedBy: archivedBy,
           changedAt: new Date(),

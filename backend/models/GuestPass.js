@@ -149,6 +149,10 @@ const guestPassSchema = new mongoose.Schema(
       default: "active",
       index: true,
     },
+  isActive: {
+    type: Boolean,
+    default: true,
+  },
 
     statusReason: {
       type: String,
@@ -156,7 +160,19 @@ const guestPassSchema = new mongoose.Schema(
       default: null,
       maxlength: 250,
     },
-
+    expiredAt: {
+      type: Date,
+      default: null,
+    },
+    cancelledAt: {
+      type: Date,
+      default: null,
+    },
+    cancelledBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
     lastScannedAt: {
       type: Date,
       default: null,
@@ -354,4 +370,3 @@ module.exports = mongoose.model(
   guestPassSchema
 );
 
-module.exports=mongoose.model("GuestPass",guestPassSchema);
