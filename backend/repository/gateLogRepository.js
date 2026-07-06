@@ -587,3 +587,155 @@ exports.updateMetadata = (
 
 };
 
+
+//========================================
+//ANALYTICS
+//========================================
+
+//count total logs
+exports.countTotla=(societyId)=>{
+  return gateLog.countDocuments(societyId,);
+};
+
+
+//count by visitor type
+exports.countByVisitor=(societyId,visitorType)=>{
+  return gateLog.countDocuments({
+    societyId,
+    visitorType,
+  });
+};
+
+//coumt by scan type
+
+exports.countByScanType=(societyId,scanType)=>{
+  return gateLog.countDocuments({
+      societyId,
+      scanType
+  });
+};
+
+
+//count by status
+
+exports.countByStatus=(societyId,status)=>{
+  return gateLog.countDocuments({
+    societyId,
+    status
+  });
+};
+
+
+//count by verification method
+
+exports.countByVerifcationMethod=(societyId,verificationMethod)=>{
+  return gateLog.countDocuments({
+    societyId,
+    verificationMethod,
+  });
+};
+
+
+//count todays entry
+
+exports.countTodaysEntry=(societyId,startOfDay,endOdDay)=>{
+  return gateLog.countDocuments({
+    societyId,
+    scanType:"entry",
+    scanTime:{
+      $gte:startOfDay,
+      $lte:endOfDay,
+    }
+  });
+};
+
+
+//count todays exits
+
+exports.countTodaysExits=(societyId,startOfDay,endOfDay)=>{
+  return gateLof.countDocuments({
+    societyId,
+    scanType:"exit",
+    scanTime:{
+      $gte:startOfDay,
+      $lte:endOfDay,
+    }
+  });
+};
+
+
+//count rejected
+
+exports.countRejected=(societyId,startOfDay,endOfDay)=>{
+  return gateLog.countDocuments({
+    societyId,
+    status:"rejected",
+    scanTime:{
+      $gte:startOfDay,
+      $lte:endOfDay,
+    }
+  });
+};
+
+
+// =======================================================
+// Find Latest Log
+// =======================================================
+
+exports.findLatest = (
+  societyId
+) => {
+
+  return GateLog.findOne({
+    societyId,
+  }).sort({
+    scanTime: -1,
+  });
+
+};
+
+// =======================================================
+// Find Oldest Log
+// =======================================================
+
+exports.findOldest = (
+  societyId
+) => {
+
+  return GateLog.findOne({
+    societyId,
+  }).sort({
+    scanTime: 1,
+  });
+
+};
+
+// =======================================================
+// Find Logs By Date
+// =======================================================
+
+exports.findLogsBetweenDates = (
+  societyId,
+  date
+) => {
+
+  const start = new Date(date);
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(date);
+  end.setHours(23, 59, 59, 999);
+
+  return GateLog.find({
+
+    societyId,
+
+    scanTime: {
+      $gte: start,
+      $lte: end,
+    },
+
+  }).sort({
+    scanTime: -1,
+  });
+
+};
