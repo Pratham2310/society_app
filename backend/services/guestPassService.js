@@ -2,134 +2,119 @@ const { v4: uuidv4 } = require("uuid");
 
 const guestPassRepository = require("../repository/guestPassRepository");
 
-const { generateQR } = require("../utils/qrGenerator");
-const { uploadBase64 } = require("../utils/cloudinaryUpload");
+const {
+  createGuestPassBodySchema,
+} = require("../validation/guestPassValidation");
+
+const {
+  validate,
+} = require("../utils/validationHelper");
+
+const {
+  generateQR,
+} = require("../utils/qrGenerator");
+
+const {
+  uploadBase64,
+} = require("../utils/cloudinaryUpload");
 
 const AppError = require("../utils/appError");
 
-// ======================================================
-// Generate Guest Pass
-// ======================================================
 
-exports.generateGuestPass = async (req) => {
-  const {
-    guestName,
-    guestPhone,
-    guestPhoto,
-    purpose,
-    vehicleNumber,
-    numberOfGuests,
-    arrivalDate,
-    expiryDate,
-    passType,
-    notes,
-  } = req.body;
+// =======================================================
+// PRIVATE
+// Validate Business Rules
+// =======================================================
 
-  // =============================================
-  // Validate Pass Type
-  // =============================================
+const validateBusinessRules = (body) => {
 
-  const allowedPassTypes = [
-    "one_time",
-    "multi_day",
-    "permanent",
-  ];
+  const arrivalDate = new Date(body.arrivalDate);
 
-  if (!allowedPassTypes.includes(passType)) {
-    throw new AppError("Invalid pass type.", 400);
+  if (body.passType === "permanent") {
+    return;
   }
 
-  // =============================================
-  // Validate Arrival Date
-  // =============================================
+  const expiryDate = new Date(body.expiryDate);
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const arrival = new Date(arrivalDate);
-  arrival.setHours(0, 0, 0, 0);
-
-  if (arrival < today) {
+  if (expiryDate <= arrivalDate) {
     throw new AppError(
-      "Arrival date cannot be in the past.",
+      "Expiry date must be after arrival date.",
       400
     );
   }
 
-  // =============================================
-  // Validate Expiry Date
-  // =============================================
+};
 
-  if (passType !== "permanent") {
-    const expiry = new Date(expiryDate);
 
-    if (expiry <= arrival) {
-      throw new AppError(
-        "Expiry date must be after arrival date.",
-        400
-      );
-    }
-  }
+// =======================================================
+// PRIVATE
+// Build Guest Pass Data
+// =======================================================
 
-  // =============================================
-  // Generate Secure Token
-  // =============================================
+const buildGuestPassData = (
+  body,
+  user,
+  qrToken
+) => {
 
-  const qrToken = uuidv4();
+  return {
 
-  // =============================================
-  // Create Guest Pass
-  // =============================================
+    societyId: user.societyId,
 
-  const guestPass =
-    await guestPassRepository.create({
+    residentId: user.id,
 
-      societyId: req.user.societyId,
+    flatId: user.flatId,
 
-      residentId: req.user.id,
+    wingId: user.wingId,
 
-      flatId: req.user.flatId,
+    guestName: body.guestName,
 
-      wingId: req.user.wingId,
+    guestPhone: body.guestPhone,
 
-      guestName,
+    guestPhoto: body.guestPhoto,
 
-      guestPhone,
+    purpose: body.purpose,
 
-      guestPhoto,
+    vehicleNumber: body.vehicleNumber,
 
-      purpose,
+    numberOfGuests: body.numberOfGuests,
 
-      vehicleNumber,
+    arrivalDate: body.arrivalDate,
 
-      numberOfGuests,
+    expiryDate:
+      body.passType === "permanent"
+        ? null
+        : body.expiryDate,
 
-      arrivalDate,
+    passType: body.passType,
 
-      expiryDate:
-        passType === "permanent"
-          ? null
-          : expiryDate,
+    qrToken,
 
-      passType,
+    qrVersion: 1,
 
-      qrToken,
+    createdSource: "resident",
 
-      qrVersion: 1,
+    notes: body.notes,
 
-      notes,
+    createdBy: user.id,
 
-      createdFrom: "resident",
+  };
 
-      createdBy: req.user.id,
+};
 
-    });
 
-  // =============================================
-  // Prepare QR Payload
-  // =============================================
 
-  const payload = {
+// =======================================================
+// PRIVATE
+// Build QR Payload
+// =======================================================
+
+const buildQrPayload = (
+  guestPass,
+  qrToken
+) => {
+
+  return {
 
     version: 1,
 
@@ -141,36 +126,115 @@ exports.generateGuestPass = async (req) => {
 
     passType: guestPass.passType,
 
-    generatedAt: new Date().toISOString(),
+    generatedAt:
+      new Date().toISOString(),
 
   };
 
-  // =============================================
-  // Generate QR
-  // =============================================
+};
 
-  const qrBase64 =
-    await generateQR(payload);
 
-  // =============================================
-  // Upload QR
-  // =============================================
 
-  const qrUrl =
-    await uploadBase64(
+// =======================================================
+// PRIVATE
+// Generate And Upload QR
+// =======================================================
+
+const generateAndUploadQr =
+  async (payload) => {
+
+    const qrBase64 =
+      await generateQR(payload);
+
+    return uploadBase64(
       qrBase64,
       "guest-passes"
     );
 
-  // =============================================
-  // Save QR URL
-  // =============================================
+  };
+
+
+
+  // =======================================================
+// CREATE GUEST PASS
+// =======================================================
+
+const createGuestPass = async (req) => {
+
+  // ==========================================
+  // Validate Request Body
+  // ==========================================
+
+  const body = validate(
+    createGuestPassBodySchema,
+    req.body
+  );
+
+  // ==========================================
+  // Business Validation
+  // ==========================================
+
+  validateBusinessRules(body);
+
+  // ==========================================
+  // Generate Secure QR Token
+  // ==========================================
+
+  const qrToken = uuidv4();
+
+  // ==========================================
+  // Prepare Guest Pass Data
+  // ==========================================
+
+  const guestPassData = buildGuestPassData(
+    body,
+    req.user,
+    qrToken
+  );
+
+  // ==========================================
+  // Save Guest Pass
+  // ==========================================
+
+  const guestPass =
+    await guestPassRepository.create(
+      guestPassData
+    );
+
+  // ==========================================
+  // Build QR Payload
+  // ==========================================
+
+  const qrPayload = buildQrPayload(
+    guestPass,
+    qrToken
+  );
+
+  // ==========================================
+  // Generate & Upload QR
+  // ==========================================
+
+  const qrCode = await generateAndUploadQr(
+    qrPayload
+  );
+
+  // ==========================================
+  // Save QR Code URL
+  // ==========================================
 
   const updatedGuestPass =
     await guestPassRepository.saveQrCode(
       guestPass._id,
-      qrUrl
+      qrCode
     );
 
+  // ==========================================
+  // Return Latest Guest Pass
+  // ==========================================
+
   return updatedGuestPass;
+
 };
+
+
+module.exports={createGuestPass};

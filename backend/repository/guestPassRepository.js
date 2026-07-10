@@ -1,338 +1,845 @@
-const guestPass=require("../models/GuestPass");
+const GuestPass = require("../models/GuestPass");
 
-//create
-exports.create=(data,session=null)=>{
-  return guestPass.create([data],{session:session}).then((docs)=>docs[0]);
-}
+// =======================================================
+// PRIVATE
+// BUILD QUERY OPTIONS
+// =======================================================
 
-//==================================
-//Read
-//==================================
+const buildQueryOptions = (options = {}) => {
 
-//find by id
-exports.findById=(id,societyId)=>{
-  return guestPass.findOne({_id:id,societyId})
-  .populate("residentId", "name phone profilePicture")
-  .populate("flatId", "flatNumber")
-  .populate("wingId","name")
-  .populate("societyId","name");
+  return {
+
+    page: Number(options.page) || 1,
+
+    limit: Number(options.limit) || 10,
+
+    sort: options.sort || {
+      createdAt: -1,
+    },
+
+    select: options.select || "",
+
+  };
+
 };
 
 
-//find by qr token
-exports.findByToken=(qrToken,societyId)=>{
-  return guestPass.findOne({Token:qrToken,societyId,status:"active"});
-};
+// =======================================================
+// PRIVATE
+// APPLY PAGINATION
+// =======================================================
 
-//resident Passes
-exports.findByResident=(residentId,societyId)=>{
-  return guestPass.find({residentId,societyId}).sort({createdAt:-1});
-};
+const applyPagination = (
+  query,
+  options = {}
+) => {
 
-
-//soietyPasses
-exports.findBySociety=(societyId)=>{
-  return guestPass.find({societyId}).sort({creaatedAt:-1});
-};
-
-//generic find
-exports.findAll=(filter={},options={})=>{
   const {
-    page=1,
-    limit=10,
-    sort={createdAt:-1},
-  }=options;
-  return guestPass.find(filter)
-  .sort(sort)
-  .skip((page-1)*limit)
-  .limit(limit);
+
+    page,
+
+    limit,
+
+    sort,
+
+    select,
+
+  } = buildQueryOptions(options);
+
+  return query
+
+    .select(select)
+
+    .sort(sort)
+
+    .skip((page - 1) * limit)
+
+    .limit(limit);
+
 };
+
+
+// =======================================================
+// PRIVATE
+// APPLY UPDATE OPTIONS
+// =======================================================
+
+const applyUpdateOptions = (
+  session = null
+) => {
+
+  return {
+
+    new: true,
+
+    runValidators: true,
+
+    session,
+
+  };
+
+};
+
+
+// =======================================================
+// PRIVATE
+// BUILD FILTER
+// =======================================================
+
+const buildGuestPassFilter = (
+  guestPassId,
+  societyId
+) => ({
+
+  _id: guestPassId,
+
+  societyId,
+
+});
+
+
+// =======================================================
+// CREATE
+// =======================================================
+
+exports.create = async (
+  data,
+  session = null
+) => {
+
+  if (session) {
+
+    const [guestPass] = await GuestPass.create(
+      [data],
+      { session }
+    );
+
+    return guestPass;
+
+  }
+
+  return GuestPass.create(data);
+
+};
+
+// =======================================================
+// READ
+// =======================================================
+
+// =======================================================
+// Find Guest Pass By Id
+// =======================================================
+
+exports.findGuestPassById = (
+  guestPassId,
+  societyId
+) => {
+
+  return GuestPass.findOne({
+
+    _id: guestPassId,
+
+    societyId,
+
+  })
+
+    .populate(
+      "residentId",
+      "name phone profilePicture"
+    )
+
+    .populate(
+      "flatId",
+      "flatNumber"
+    )
+
+    .populate(
+      "wingId",
+      "name"
+    )
+
+    .populate(
+      "societyId",
+      "name"
+    );
+
+};
+
+// =======================================================
+// Find Pass By QR Token
+// =======================================================
+
+exports.findPassByToken = (
+  qrToken,
+  societyId
+) => {
+
+  return GuestPass.findOne({
+
+    qrToken,
+
+    societyId,
+
+  });
+
+};
+
+// =======================================================
+// Find Active Pass By QR Token
+// =======================================================
+
+exports.findActivePassByToken = (
+  qrToken,
+  societyId
+) => {
+
+  return GuestPass.findOne({
+
+    qrToken,
+
+    societyId,
+
+    status: "active",
+
+  });
+
+};
+
+// =======================================================
+// Find Resident Passes
+// =======================================================
+
+exports.findResidentPasses = (
+  residentId,
+  societyId,
+  options = {}
+) => {
+
+  const {
+
+    page,
+
+    limit,
+
+    sort,
+
+    select,
+
+  } = buildQueryOptions(options);
+
+  return GuestPass.find({
+
+    residentId,
+
+    societyId,
+
+  })
+
+    .select(select)
+
+    .sort(sort)
+
+    .skip((page - 1) * limit)
+
+    .limit(limit)
+
+    .lean();
+
+};
+
+// =======================================================
+// Find Society Passes
+// =======================================================
+
+exports.findSocietyPasses = (
+  societyId,
+  options = {}
+) => {
+
+  const {
+
+    page,
+
+    limit,
+
+    sort,
+
+    select,
+
+  } = buildQueryOptions(options);
+
+  return GuestPass.find({
+
+    societyId,
+
+  })
+
+    .select(select)
+
+    .sort(sort)
+
+    .skip((page - 1) * limit)
+
+    .limit(limit)
+
+    .lean();
+
+};
+
+// =======================================================
+// Find Guest Passes
+// =======================================================
+
+exports.findGuestPasses = (
+  filter = {},
+  options = {}
+) => {
+
+  const {
+
+    page,
+
+    limit,
+
+    sort,
+
+    select,
+
+  } = buildQueryOptions(options);
+
+  return GuestPass.find(filter)
+
+    .select(select)
+
+    .sort(sort)
+
+    .skip((page - 1) * limit)
+
+    .limit(limit)
+
+    .lean();
+
+};
+
 
 // =======================================================
 // SEARCH
 // =======================================================
 
-
-//search guest
-
-exports.searchGuest=(societyId,keyword)=>{
-  return guestPass.find({
-    societyId,
-    $or:[
-      {guestName:{$regex:keyword,$options:"i"},},
-      {guestPhone:{$regex:keyword,$options:"i"},},
-      {vehicleNumber:{$regex:keyword,$options:"i"},},
-    ]
-  }).sort({createdAt:-1});
-};
-
 // =======================================================
-// EXISTS
+// Search Guest Passes
 // =======================================================
 
-exports.exists = (
-  id,
-  societyId
+exports.searchGuestPasses = (
+  societyId,
+  keyword,
+  options = {}
 ) => {
-  return GuestPass.exists({
-    _id: id,
+
+  const query = GuestPass.find({
+
     societyId,
+
+    $or: [
+
+      {
+        guestName: {
+          $regex: keyword,
+          $options: "i",
+        },
+      },
+
+      {
+        guestPhone: {
+          $regex: keyword,
+          $options: "i",
+        },
+      },
+
+      {
+        vehicleNumber: {
+          $regex: keyword,
+          $options: "i",
+        },
+      },
+
+    ],
+
   });
+
+  return applyPagination(
+    query,
+    options
+  ).lean();
+
 };
+
 
 
 // =======================================================
 // FILTERS
 // =======================================================
 
-//find by status
+// =======================================================
+// Find Passes By Status
+// =======================================================
 
-exports.findByStatus = (societyId,status,options={})=>{
-  const {page=1,
-    limit=10,
-    sort={createdAt:-1}
-  }=options;
-  return guestPass.find({societyId,status,}).sort({createdAt:-1}).skip((page-1)*limit).limit(limit);
+exports.findPassesByStatus = (
+  societyId,
+  status,
+  options = {}
+) => {
+
+  const query = GuestPass.find({
+
+    societyId,
+
+    status,
+
+  });
+
+  return applyPagination(
+    query,
+    options
+  ).lean();
+
 };
 
+// =======================================================
+// Find Passes By Type
+// =======================================================
 
-//find by pass type
-exports.findByPassType = (societyId,passType,options={})=>{
-  const {
-    page=1,
-    limit=10,
-  }=options;
-  return guestPass.find({
+exports.findPassesByType = (
+  societyId,
+  passType,
+  options = {}
+) => {
+
+  const query = GuestPass.find({
+
     societyId,
+
     passType,
-  }).sort({createdAt:-1})
-  .skip((page-1)*limit)
-  .limit(limit);
+
+  });
+
+  return applyPagination(
+    query,
+    options
+  ).lean();
+
 };
 
+// =======================================================
+// Find Passes By Purpose
+// =======================================================
 
-//find by purpose
-exports.findByPurpose=(societyId,purpose,options={})=>{
-  const {page=1,
-    limit=10
-  }=options;
-  return guestPass.find({
+exports.findPassesByPurpose = (
+  societyId,
+  purpose,
+  options = {}
+) => {
+
+  const query = GuestPass.find({
+
     societyId,
+
     purpose,
-  }).sort({createdAt:-1})
-  .skip((page-1)*limit)
-  .limit(limit);
-};
 
-//find between dates
-exports.findBetweenDates=(societyId,startDate,endDate,options={})=>{
-  const{
-    page=1,
-    limit=10
-  }=options;
-
-  return guestPass.find({
-    societyId,
-    createdAt:{
-      $gte:startDate,
-      $lte:endDate
-    },
   });
+
+  return applyPagination(
+    query,
+    options
+  ).lean();
+
 };
 
+// =======================================================
+// Find Passes Between Dates
+// =======================================================
 
-//Find expiring soon
-exports.findExpiringSoon=(societyId,date,options={})=>{
-  const {
-    page=1,
-    limit=10
-  }=options;
+exports.findPassesBetweenDates = (
 
-  return guestPass.find({
+  societyId,
+
+  startDate,
+
+  endDate,
+
+  options = {}
+
+) => {
+
+  const query = GuestPass.find({
+
     societyId,
-    status:"active",
-    expiryDate:{
-      $lte:date,
+
+    createdAt: {
+
+      $gte: startDate,
+
+      $lte: endDate,
+
     },
+
   });
+
+  return applyPagination(
+    query,
+    options
+  ).lean();
+
 };
 
+// =======================================================
+// Find Expiring Soon
+// =======================================================
 
-//find expired
-exports.findExpired=(societyId)=>{
-  return guestPass.find({
+exports.findExpiringSoon = (
+
+  societyId,
+
+  date,
+
+  options = {}
+
+) => {
+
+  const query = GuestPass.find({
+
     societyId,
-    status:"expired"
-  }).sort({expiryDate:-1});
+
+    status: "active",
+
+    expiryDate: {
+
+      $lte: date,
+
+    },
+
+  });
+
+  return applyPagination(
+    query,
+    options
+  ).lean();
+
 };
 
-//find recent 
+// =======================================================
+// Find Recent Passes
+// =======================================================
 
-exports.findRecent=(societyId,limit=10)=>{
+exports.findRecentPasses = (
+  societyId,
+  limit = 10
+) => {
 
-  return guestPass.find({
+  return GuestPass.find({
+
     societyId,
-  }).sort({createdAt:-1})
-  .limit(limit);
+
+  })
+
+    .sort({
+
+      createdAt: -1,
+
+    })
+
+    .limit(limit)
+
+    .lean();
+
 };
+
+
 
 
 // =======================================================
 // REPORTS
 // =======================================================
 
+// =======================================================
+// Resident History
+// =======================================================
 
-//Resident history
-exports.findResidentHistory=(societyId,residentId,options={})=>{
-  const {
-    page=1,
-    limit=10,
-  }=options;
+exports.findResidentHistory = (
 
-  return giestPass.find({
+  societyId,
+
+  residentId,
+
+  options = {}
+
+) => {
+
+  const query = GuestPass.find({
+
     societyId,
+
     residentId,
-  }).sort({createdAt:-1});
+
+  });
+
+  return applyPagination(
+    query,
+    options
+  ).lean();
 
 };
 
-//flat history
-exports.findFlatHistory=(societyId,flatId,options={})=>{
-  const {
-    page=1,
-    limit=10
-  }=options;
-  return guestPass.find({
+// =======================================================
+// Flat History
+// =======================================================
+
+exports.findFlatHistory = (
+
+  societyId,
+
+  flatId,
+
+  options = {}
+
+) => {
+
+  const query = GuestPass.find({
+
     societyId,
+
     flatId,
-  }).sort({createdAt:-1});
+
+  });
+
+  return applyPagination(
+    query,
+    options
+  ).lean();
+
 };
 
-//wing history
-exports.findWingHistory=(societyId,wingId,options={})=>{
-  const {
-    page=1,
-    limit=10,
-  }=options;
+// =======================================================
+// Wing History
+// =======================================================
 
-  return guestPass.find({
+exports.findWingHistory = (
+
+  societyId,
+
+  wingId,
+
+  options = {}
+
+) => {
+
+  const query = GuestPass.find({
+
     societyId,
+
     wingId,
-  }).sort({createdAt:-1});
+
+  });
+
+  return applyPagination(
+    query,
+    options
+  ).lean();
+
 };
 
-//todays passes
-exports.findTodaysPasses=(societyId,startofDay,endofDay)=>{
-  return guestPass.find({
+// =======================================================
+// Today's Passes
+// =======================================================
+
+exports.findTodaysPasses = (
+
+  societyId,
+
+  startOfDay,
+
+  endOfDay
+
+) => {
+
+  return GuestPass.find({
+
     societyId,
-    createdAt:{
-      $gte:startofDay,
-      $lte:endofDay,
+
+    createdAt: {
+
+      $gte: startOfDay,
+
+      $lte: endOfDay,
+
     },
-  }).sort({createdAt:-1});
-};
 
+  })
 
-//permenant passes
-exports.findPermenantPasses=(societyId)=>{
-  return guestPass.find({
-    societyId,
-    passType:"permanent",
-  }).sort({createdAt:-1});
-};
+    .sort({
 
+      createdAt: -1,
 
-//multi time passes
-exports.findMultiTimePasses=(societyId)=>{
-  return guestPass.find({
-    societyId,
-    passType:"multi-time",
-  }).sort({createdAt:-1});
-};
+    })
 
+    .lean();
 
-//one time passes
-exports.findOneTimePasses=(societyId)=>{
-  return guestPass.find({
-    societyId,
-    passType:"one time",
-  }).sort({createdAt:-1});
 };
 
 // =======================================================
-// UPDATE METHODS
+// Permanent Passes
 // =======================================================
+
+exports.findPermanentPasses = (
+  societyId,
+  options = {}
+) => {
+
+  return exports.findPassesByType(
+    societyId,
+    "permanent",
+    options
+  );
+
+};
+
+// =======================================================
+// Multi Day Passes
+// =======================================================
+
+exports.findMultiDayPasses = (
+  societyId,
+  options = {}
+) => {
+
+  return exports.findPassesByType(
+    societyId,
+    "multi_day",
+    options
+  );
+
+};
+
+// =======================================================
+// One Time Passes
+// =======================================================
+
+exports.findOneTimePasses = (
+  societyId,
+  options = {}
+) => {
+
+  return exports.findPassesByType(
+    societyId,
+    "one_time",
+    options
+  );
+
+};
+
 
 // =======================================================
 // SAVE INITIAL QR CODE
 // =======================================================
 
 exports.saveInitialQRCode = (
-  id,
+
+  guestPassId,
+
   societyId,
-  qrCode
+
+  qrCode,
+
+  session = null
+
 ) => {
 
   return GuestPass.findOneAndUpdate(
+
     {
-      _id: id,
+
+      _id: guestPassId,
+
       societyId,
+
     },
+
     {
+
       $set: {
+
         qrCode,
+
         lastQrGeneratedAt: new Date(),
+
       },
+
     },
-    {
-      new: true,
-    }
+
+    applyUpdateOptions(session)
+
   );
 
 };
+
+
 
 // =======================================================
 // REGENERATE QR CODE
 // =======================================================
 
 exports.regenerateQRCode = (
-  id,
+
+  guestPassId,
+
   societyId,
+
   qrToken,
-  qrCode
+
+  qrCode,
+
+  session = null
+
 ) => {
 
   return GuestPass.findOneAndUpdate(
+
     {
-      _id: id,
+
+      _id: guestPassId,
+
       societyId,
+
     },
+
     {
+
       $set: {
+
         qrToken,
+
         qrCode,
+
         lastQrGeneratedAt: new Date(),
+
       },
 
       $inc: {
+
         regeneratedCount: 1,
+
         qrVersion: 1,
+
       },
+
     },
-    {
-      new: true,
-    }
+
+    applyUpdateOptions(session)
+
   );
 
 };
 
-// =======================================================
-// UPDATE PASS STATUS
-// =======================================================
-
-// =======================================================
-// UPDATE PASS STATUS
-// =======================================================
 
 
 // =======================================================
@@ -340,189 +847,271 @@ exports.regenerateQRCode = (
 // =======================================================
 
 exports.updatePassStatus = (
-  id,
+
+  guestPassId,
+
   societyId,
+
   previousStatus,
+
   newStatus,
+
   reason,
- changedBy
+
+  changedBy,
+
+  session = null
+
 ) => {
 
   const updateData = {
+
     status: newStatus,
+
     statusReason: reason,
-    isActive: newStatus === "active",
+
   };
 
   if (newStatus === "expired") {
+
     updateData.expiredAt = new Date();
+
   }
 
   if (newStatus === "cancelled") {
+
     updateData.cancelledAt = new Date();
+
     updateData.cancelledBy = changedBy;
+
   }
 
   return GuestPass.findOneAndUpdate(
+
     {
-      _id: id,
+
+      _id: guestPassId,
+
       societyId,
+
     },
+
     {
+
       $set: updateData,
 
       $push: {
+
         statusHistory: {
+
           previousStatus,
+
           newStatus,
-          reason,
+
           changedBy,
+
           changedAt: new Date(),
+
+          reason,
+
         },
+
       },
+
     },
-    {
-      new: true,
-    }
+
+    applyUpdateOptions(session)
+
   );
 
 };
 
-// =======================================================
-// APPROVE PASS
-// =======================================================
+
 
 // =======================================================
 // APPROVE PASS
 // =======================================================
 
 exports.approvePass = (
-  id,
+
+  guestPassId,
+
   societyId,
-  approvedBy
+
+  approvedBy,
+
+  session = null
+
 ) => {
 
   return GuestPass.findOneAndUpdate(
+
     {
-      _id: id,
+
+      _id: guestPassId,
+
       societyId,
+
     },
+
     {
+
       $set: {
+
         approvedBy,
+
         approvedAt: new Date(),
+
       },
+
     },
-    {
-      new: true,
-    }
+
+    applyUpdateOptions(session)
+
   );
 
 };
 
-// =======================================================
-// FIND BY QR TOKEN + ACTIVE
-// =======================================================
-
-exports.findValidQRCode = (
-  societyId,
-  qrToken
-) => {
-
-  return GuestPass.findOne({
-    societyId,
-    qrToken,
-    status: "active",
-    isActive: true,
-  });
-
-};
 
 // =======================================================
 // EXTEND PASS
 // =======================================================
 
 exports.extendPass = (
-  id,
+
+  guestPassId,
+
   societyId,
+
   expiryDate,
-  history
+
+  history,
+
+  session = null
+
 ) => {
 
   return GuestPass.findOneAndUpdate(
+
     {
-      _id: id,
+
+      _id: guestPassId,
+
       societyId,
+
     },
+
     {
+
       $set: {
+
         expiryDate,
+
       },
 
       $push: {
+
         extensionHistory: history,
+
       },
 
       $inc: {
+
         extendedCount: 1,
+
       },
+
     },
-    {
-      new: true,
-    }
+
+    applyUpdateOptions(session)
+
   );
 
 };
 
+
+
+
 // =======================================================
-// UPDATE NOTIFICATION
+// UPDATE NOTIFICATION TIME
 // =======================================================
 
 exports.updateNotificationTime = (
-  id,
-  societyId
+
+  guestPassId,
+
+  societyId,
+
+  session = null
+
 ) => {
 
   return GuestPass.findOneAndUpdate(
+
     {
-      _id: id,
+
+      _id: guestPassId,
+
       societyId,
+
     },
+
     {
+
       $set: {
+
         lastNotificationSentAt: new Date(),
+
       },
+
     },
-    {
-      new: true,
-    }
+
+    applyUpdateOptions(session)
+
   );
 
 };
+
+
 
 // =======================================================
 // UPDATE METADATA
 // =======================================================
 
 exports.updateMetadata = (
-  id,
+
+  guestPassId,
+
   societyId,
-  metadata
+
+  metadata,
+
+  session = null
+
 ) => {
 
   return GuestPass.findOneAndUpdate(
+
     {
-      _id: id,
+
+      _id: guestPassId,
+
       societyId,
+
     },
+
     {
+
       $set: {
+
         metadata,
+
       },
+
     },
-    {
-      new: true,
-    }
+
+    applyUpdateOptions(session)
+
   );
 
 };
@@ -532,48 +1121,73 @@ exports.updateMetadata = (
 // =======================================================
 
 // Count By Status
-exports.countByStatus = (
+
+exports.countPassesByStatus = (
+
   societyId,
+
   status
+
 ) => {
 
   return GuestPass.countDocuments({
+
     societyId,
+
     status,
+
   });
 
 };
 
 // Count By Pass Type
-exports.countByPassType = (
+
+exports.countPassesByType = (
+
   societyId,
+
   passType
+
 ) => {
 
   return GuestPass.countDocuments({
+
     societyId,
+
     passType,
+
   });
 
 };
 
-// Count By Resident
-exports.countByResident = (
+// Count Resident Passes
+
+exports.countResidentPasses = (
+
   societyId,
+
   residentId
+
 ) => {
 
   return GuestPass.countDocuments({
+
     societyId,
+
     residentId,
+
   });
 
 };
 
 // Count Expiring Soon
+
 exports.countExpiringSoon = (
+
   societyId,
+
   date
+
 ) => {
 
   return GuestPass.countDocuments({
@@ -583,7 +1197,9 @@ exports.countExpiringSoon = (
     status: "active",
 
     expiryDate: {
+
       $lte: date,
+
     },
 
   });
@@ -591,125 +1207,178 @@ exports.countExpiringSoon = (
 };
 
 // Count Total Passes
-exports.countTotal = (
+
+exports.countTotalPasses = (
+
   societyId
+
 ) => {
 
   return GuestPass.countDocuments({
+
     societyId,
+
   });
 
 };
+
 
 // =======================================================
 // UTILITIES
 // =======================================================
 
-// Exists By QR Token
-exports.existsByToken = (
-  token,
+// Guest Pass Exists
+
+exports.guestPassExists = (
+
+  guestPassId,
+
   societyId
+
 ) => {
 
-  return GuestPass.exists({
-    qrToken: token,
-    societyId,
-  });
+  return GuestPass.exists(
 
-};
+    buildGuestPassFilter(
 
-// Exists By Id
-exports.existsById = (
-  id,
-  societyId
-) => {
+      guestPassId,
 
-  return GuestPass.exists({
-    _id: id,
-    societyId,
-  });
+      societyId
 
-};
+    )
 
-// Find Latest Pass
-exports.findLatest = (
-  societyId
-) => {
-
-  return GuestPass.findOne({
-    societyId,
-  }).sort({
-    createdAt: -1,
-  });
-
-};
-
-// Find Oldest Pass
-exports.findOldest = (
-  societyId
-) => {
-
-  return GuestPass.findOne({
-    societyId,
-  }).sort({
-    createdAt: 1,
-  });
-
-};
-
-// =======================================================
-// ADMIN / SYSTEM
-// =======================================================
-
-// =======================================================
-// ARCHIVE PASS
-// =======================================================
-
-// =======================================================
-// ARCHIVE PASS
-// =======================================================
-
-exports.archivePass = (
-  id,
-  societyId,
-  previousStatus,
- archivedBy
-) => {
-
-  return GuestPass.findOneAndUpdate(
-    {
-      _id: id,
-      societyId,
-    },
-    {
-      $set: {
-        status: "cancelled",
-        statusReason: "Archived",
-        isActive: false,
-        cancelledAt: new Date(),
-        cancelledBy: archivedBy,
-      },
-
-      $push: {
-        statusHistory: {
-          previousStatus,
-          newStatus: "cancelled",
-          changedBy: archivedBy,
-          changedAt: new Date(),
-          reason: "Archived",
-        },
-      },
-    },
-    {
-      new: true,
-    }
   );
 
 };
 
+// Exists By QR Token
+
+exports.existsByToken = (
+
+  qrToken,
+
+  societyId
+
+) => {
+
+  return GuestPass.exists({
+
+    qrToken,
+
+    societyId,
+
+  });
+
+};
+
+// Latest Guest Pass
+
+exports.findLatestGuestPass = (
+
+  societyId
+
+) => {
+
+  return GuestPass.findOne({
+
+    societyId,
+
+  })
+
+    .sort({
+
+      createdAt: -1,
+
+    });
+
+};
+
+// Oldest Guest Pass
+
+exports.findOldestGuestPass = (
+
+  societyId
+
+) => {
+
+  return GuestPass.findOne({
+
+    societyId,
+
+  })
+
+    .sort({
+
+      createdAt: 1,
+
+    });
+
+};
 
 
 
+// =======================================================
+// ADMIN
+// =======================================================
 
+// Archive Guest Pass
 
+exports.archiveGuestPass = (
 
+  guestPassId,
+
+  societyId,
+
+  previousStatus,
+
+  archivedBy,
+
+  session = null
+
+) => {
+
+  return GuestPass.findOneAndUpdate(
+
+    buildGuestPassFilter(
+
+      guestPassId,
+
+      societyId
+
+    ),
+
+    {
+
+      $set: {
+
+        status: "cancelled",
+
+        statusReason: "Archived",
+
+      },
+
+      $push: {
+
+        statusHistory: {
+
+          previousStatus,
+
+          newStatus: "cancelled",
+
+          changedBy: archivedBy,
+
+          changedAt: new Date(),
+
+          reason: "Archived",
+
+        },
+
+      },
+
+    },
+
+    applyUpdateOptions(session)
+
+  );
+
+};

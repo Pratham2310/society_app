@@ -1,0 +1,4 @@
+validateRequest(
+    schema,
+    req.body
+);
