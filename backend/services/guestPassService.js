@@ -1,46 +1,155 @@
-const { v4: uuidv4 } = require("uuid");
+const mongoose = require("mongoose");
 
 const guestPassRepository = require("../repository/guestPassRepository");
 
+const qrService = require("./qrService");
+
 const {
+
   createGuestPassBodySchema,
+
 } = require("../validation/guestPassValidation");
 
 const {
+
   validate,
+
 } = require("../utils/validationHelper");
-
-const {
-  generateQR,
-} = require("../utils/qrGenerator");
-
-const {
-  uploadBase64,
-} = require("../utils/cloudinaryUpload");
 
 const AppError = require("../utils/appError");
 
 
 // =======================================================
 // PRIVATE
-// Validate Business Rules
+// BUSINESS VALIDATION
 // =======================================================
 
-const validateBusinessRules = (body) => {
+const validateBusinessRules = (
 
-  const arrivalDate = new Date(body.arrivalDate);
+  body,
 
-  if (body.passType === "permanent") {
-    return;
+  user
+
+) => {
+
+  const arrivalDate = new Date(
+
+    body.arrivalDate
+
+  );
+
+  if (
+
+    body.passType !== "permanent"
+
+  ) {
+
+    if (!body.expiryDate) {
+
+      throw new AppError(
+
+        "Expiry date is required.",
+
+        400
+
+      );
+
+    }
+
+    const expiryDate = new Date(
+
+      body.expiryDate
+
+    );
+
+    if (
+
+      expiryDate <= arrivalDate
+
+    ) {
+
+      throw new AppError(
+
+        "Expiry date must be after arrival date.",
+
+        400
+
+      );
+
+    }
+
   }
 
-  const expiryDate = new Date(body.expiryDate);
+  if (
 
-  if (expiryDate <= arrivalDate) {
+    !user.societyId ||
+
+    !user.flatId ||
+
+    !user.wingId
+
+  ) {
+
     throw new AppError(
-      "Expiry date must be after arrival date.",
+
+      "Resident profile is incomplete.",
+
+      400
+
+    );
+
+  }
+
+};
+
+
+
+// =======================================================
+// PRIVATE
+// GET VALIDATED GUEST PASS
+// =======================================================
+
+const getValidatedGuestPass = async (
+  guestPassId,
+  societyId
+) => {
+
+  const guestPass =
+    await guestPassRepository.findGuestPassById(
+      guestPassId,
+      societyId
+    );
+
+  if (!guestPass) {
+
+    throw new AppError(
+      "Guest pass not found.",
+      404
+    );
+
+  }
+
+  return guestPass;
+
+};
+
+
+// =======================================================
+// PRIVATE
+// VALIDATE MODIFIABLE PASS
+// =======================================================
+
+const validateModifiableGuestPass = (
+  guestPass
+) => {
+
+  if (guestPass.status !== "active") {
+
+    throw new AppError(
+      "Only active guest passes can be modified.",
       400
     );
+
   }
 
 };
@@ -48,13 +157,35 @@ const validateBusinessRules = (body) => {
 
 // =======================================================
 // PRIVATE
-// Build Guest Pass Data
+// VALIDATE APPROVAL
+// =======================================================
+
+const validateApproval = (
+  guestPass
+) => {
+
+  if (guestPass.approvedAt) {
+
+    throw new AppError(
+      "Guest pass is already approved.",
+      400
+    );
+
+  }
+
+};
+
+// =======================================================
+// PRIVATE
+// BUILD GUEST PASS DATA
 // =======================================================
 
 const buildGuestPassData = (
+
   body,
-  user,
-  qrToken
+
+  user
+
 ) => {
 
   return {
@@ -82,15 +213,14 @@ const buildGuestPassData = (
     arrivalDate: body.arrivalDate,
 
     expiryDate:
+
       body.passType === "permanent"
+
         ? null
+
         : body.expiryDate,
 
     passType: body.passType,
-
-    qrToken,
-
-    qrVersion: 1,
 
     createdSource: "resident",
 
@@ -106,135 +236,634 @@ const buildGuestPassData = (
 
 // =======================================================
 // PRIVATE
-// Build QR Payload
+// START TRANSACTION
 // =======================================================
 
-const buildQrPayload = (
-  guestPass,
-  qrToken
+const startTransaction = async () => {
+
+  const session =
+
+    await mongoose.startSession();
+
+  session.startTransaction();
+
+  return session;
+
+};
+
+// =======================================================
+// PRIVATE
+// COMMIT TRANSACTION
+// =======================================================
+
+const commitTransaction = async (
+
+  session
+
 ) => {
 
-  return {
+  await session.commitTransaction();
 
-    version: 1,
+  session.endSession();
 
-    passId: guestPass._id,
+};
 
-    societyId: guestPass.societyId,
+// =======================================================
+// PRIVATE
+// ABORT TRANSACTION
+// =======================================================
 
-    token: qrToken,
+const abortTransaction = async (
 
-    passType: guestPass.passType,
+  session
 
-    generatedAt:
-      new Date().toISOString(),
+) => {
 
-  };
+  await session.abortTransaction();
+
+  session.endSession();
 
 };
 
 
-
 // =======================================================
-// PRIVATE
-// Generate And Upload QR
-// =======================================================
-
-const generateAndUploadQr =
-  async (payload) => {
-
-    const qrBase64 =
-      await generateQR(payload);
-
-    return uploadBase64(
-      qrBase64,
-      "guest-passes"
-    );
-
-  };
-
-
-
-  // =======================================================
 // CREATE GUEST PASS
 // =======================================================
 
-const createGuestPass = async (req) => {
+const createGuestPass = async (
+
+  body,
+
+  user
+
+) => {
 
   // ==========================================
-  // Validate Request Body
+  // Validate Request
   // ==========================================
 
-  const body = validate(
+  const validatedBody = validate(
+
     createGuestPassBodySchema,
-    req.body
+
+    body
+
   );
 
   // ==========================================
   // Business Validation
   // ==========================================
 
-  validateBusinessRules(body);
+  validateBusinessRules(
 
-  // ==========================================
-  // Generate Secure QR Token
-  // ==========================================
+    validatedBody,
 
-  const qrToken = uuidv4();
+    user
 
-  // ==========================================
-  // Prepare Guest Pass Data
-  // ==========================================
-
-  const guestPassData = buildGuestPassData(
-    body,
-    req.user,
-    qrToken
   );
 
-  // ==========================================
-  // Save Guest Pass
-  // ==========================================
+  let session;
 
-  const guestPass =
-    await guestPassRepository.create(
-      guestPassData
+  let qrResponse = null;
+
+  try {
+
+    // ==========================================
+    // Start Transaction
+    // ==========================================
+
+    session = await startTransaction();
+
+    // ==========================================
+    // Build Guest Pass
+    // ==========================================
+
+    const guestPassData = buildGuestPassData(
+
+      validatedBody,
+
+      user
+
     );
 
-  // ==========================================
-  // Build QR Payload
-  // ==========================================
+    // ==========================================
+    // Create Guest Pass
+    // ==========================================
 
-  const qrPayload = buildQrPayload(
-    guestPass,
-    qrToken
-  );
+    const guestPass =
 
-  // ==========================================
-  // Generate & Upload QR
-  // ==========================================
+      await guestPassRepository.create(
 
-  const qrCode = await generateAndUploadQr(
-    qrPayload
-  );
+        guestPassData,
 
-  // ==========================================
-  // Save QR Code URL
-  // ==========================================
+        session
 
-  const updatedGuestPass =
-    await guestPassRepository.saveQrCode(
-      guestPass._id,
-      qrCode
+      );
+
+    // ==========================================
+    // Generate QR
+    // ==========================================
+
+    qrResponse =
+
+      await qrService.createQRCode(
+
+        {
+
+          guestPassId: guestPass._id,
+
+          societyId: guestPass.societyId,
+
+          residentId: guestPass.residentId,
+
+          passType: guestPass.passType,
+
+          arrivalDate: guestPass.arrivalDate,
+
+          expiryDate: guestPass.expiryDate,
+
+        },
+
+        {
+
+          folder: "guest-passes",
+
+          qrVersion: 1,
+
+        }
+
+      );
+
+    // ==========================================
+    // Save QR
+    // ==========================================
+
+    const updatedGuestPass =
+
+      await guestPassRepository.saveInitialQRCode(
+
+        guestPass._id,
+
+        guestPass.societyId,
+
+        {
+
+          qrToken: qrResponse.qrToken,
+
+          qrCode: qrResponse.qrCode,
+
+          qrPublicId: qrResponse.qrPublicId,
+
+          qrVersion: qrResponse.qrVersion,
+
+        },
+
+        session
+
+      );
+
+    // ==========================================
+    // Commit
+    // ==========================================
+
+    await commitTransaction(
+
+      session
+
     );
 
-  // ==========================================
-  // Return Latest Guest Pass
-  // ==========================================
+    return updatedGuestPass;
 
-  return updatedGuestPass;
+  }
+
+  catch (error) {
+
+    // ==========================================
+    // Cleanup Uploaded QR
+    // ==========================================
+
+    if (
+
+      qrResponse?.qrPublicId
+
+    ) {
+
+      await qrService.removeQRCode(
+
+        qrResponse.qrPublicId
+
+      );
+
+    }
+
+    // ==========================================
+    // Rollback
+    // ==========================================
+
+    if (session) {
+
+      await abortTransaction(
+
+        session
+
+      );
+
+    }
+
+    throw error;
+
+  };
 
 };
 
 
-module.exports={createGuestPass};
+// =======================================================
+// GET GUEST PASS
+// =======================================================
+
+const getGuestPassById = async (
+  guestPassId,
+  user
+) => {
+
+  const guestPass =
+    await guestPassRepository.findGuestPassById(
+      guestPassId,
+      user.societyId
+    );
+
+  if (!guestPass) {
+
+    throw new AppError(
+      "Guest pass not found.",
+      404
+    );
+
+  }
+
+  return guestPass;
+
+};
+
+// =======================================================
+// GET RESIDENT PASSES
+// =======================================================
+
+const getResidentGuestPasses = async (
+  residentId,
+  user,
+  options = {}
+) => {
+
+  return guestPassRepository.findResidentPasses(
+    residentId,
+    user.societyId,
+    options
+  );
+
+};
+
+// =======================================================
+// GET SOCIETY PASSES
+// =======================================================
+
+const getSocietyGuestPasses = async (
+  user,
+  options = {}
+) => {
+
+  return guestPassRepository.findSocietyPasses(
+    user.societyId,
+    options
+  );
+
+};
+
+
+// =======================================================
+// APPROVE GUEST PASS
+// =======================================================
+
+const approveGuestPass = async (
+  guestPassId,
+  user
+) => {
+
+  const guestPass =
+    await getValidatedGuestPass(
+      guestPassId,
+      user.societyId
+    );
+
+  validateApproval(
+    guestPass
+  );
+
+  return guestPassRepository.approvePass(
+    guestPassId,
+    user.societyId,
+    user.id
+  );
+
+};
+
+
+// =======================================================
+// CANCEL GUEST PASS
+// =======================================================
+
+const cancelGuestPass = async (
+  guestPassId,
+  reason,
+  user
+) => {
+
+  const guestPass =
+    await getValidatedGuestPass(
+      guestPassId,
+      user.societyId
+    );
+
+  validateModifiableGuestPass(
+    guestPass
+  );
+
+  return guestPassRepository.updatePassStatus(
+    guestPassId,
+    user.societyId,
+    guestPass.status,
+    "cancelled",
+    reason,
+    user.id
+  );
+
+}; 
+
+
+
+// =======================================================
+// ARCHIVE GUEST PASS
+// =======================================================
+
+const archiveGuestPass = async (
+  guestPassId,
+  user
+) => {
+
+  const guestPass =
+    await getValidatedGuestPass(
+      guestPassId,
+      user.societyId
+    );
+
+  return guestPassRepository.archiveGuestPass(
+    guestPassId,
+    user.societyId,
+    guestPass.status,
+    user.id
+  );
+
+};
+
+
+
+// =======================================================
+// EXTEND GUEST PASS
+// =======================================================
+
+const extendGuestPass = async (
+  guestPassId,
+  expiryDate,
+  reason,
+  user
+) => {
+
+  const guestPass =
+    await getValidatedGuestPass(
+      guestPassId,
+      user.societyId
+    );
+
+  validateModifiableGuestPass(
+    guestPass
+  );
+
+  const history = {
+
+    previousExpiry:
+      guestPass.expiryDate,
+
+    newExpiry: expiryDate,
+
+    extendedBy: user.id,
+
+    reason,
+
+  };
+
+  return guestPassRepository.extendPass(
+    guestPassId,
+    user.societyId,
+    expiryDate,
+    history
+  );
+
+};
+
+
+// =======================================================
+// REGENERATE GUEST PASS QR
+// =======================================================
+
+const regenerateGuestPassQRCode = async (
+  guestPassId,
+  user
+) => {
+
+  const guestPass =
+    await getValidatedGuestPass(
+      guestPassId,
+      user.societyId
+    );
+
+  validateModifiableGuestPass(
+    guestPass
+  );
+
+  let session;
+
+  let qrResponse = null;
+
+  try {
+
+    session = await startTransaction();
+
+    qrResponse =
+      await qrService.regenerateQRCode(
+        {
+          guestPassId: guestPass._id,
+          societyId: guestPass.societyId,
+          residentId: guestPass.residentId,
+          passType: guestPass.passType,
+          arrivalDate: guestPass.arrivalDate,
+          expiryDate: guestPass.expiryDate,
+        },
+        {
+          qrPublicId: guestPass.qrPublicId,
+          qrVersion: guestPass.qrVersion,
+        },
+        {
+          folder: "guest-passes",
+        }
+      );
+
+    const updatedGuestPass =
+      await guestPassRepository.regenerateQRCode(
+        guestPassId,
+        user.societyId,
+        qrResponse.qrToken,
+        qrResponse.qrCode,
+        qrResponse.qrPublicId,
+        session
+      );
+
+    await commitTransaction(session);
+
+    // Delete old QR only after successful commit
+    if (guestPass.qrPublicId) {
+      await qrService.removeQRCode(
+        guestPass.qrPublicId
+      );
+    }
+
+    return updatedGuestPass;
+
+  }
+
+  catch (error) {
+
+    if (qrResponse?.qrPublicId) {
+
+      await qrService.removeQRCode(
+        qrResponse.qrPublicId
+      );
+
+    }
+
+    if (session) {
+
+      await abortTransaction(
+        session
+      );
+
+    }
+
+    throw error;
+
+  }
+
+};
+
+
+
+// =======================================================
+// GUEST PASS STATISTICS
+// =======================================================
+
+const getGuestPassStatistics = async (
+  user
+) => {
+
+  const societyId = user.societyId;
+
+  const [
+
+    total,
+
+    active,
+
+    expired,
+
+    permanent,
+
+  ] = await Promise.all([
+
+    guestPassRepository.countTotalPasses(
+      societyId
+    ),
+
+    guestPassRepository.countPassesByStatus(
+      societyId,
+      "active"
+    ),
+
+    guestPassRepository.countPassesByStatus(
+      societyId,
+      "expired"
+    ),
+
+    guestPassRepository.countPassesByType(
+      societyId,
+      "permanent"
+    ),
+
+  ]);
+
+  return {
+
+    total,
+
+    active,
+
+    expired,
+
+    permanent,
+
+  };
+
+};
+
+
+// =======================================================
+// RECORD GUEST PASS SCAN
+// =======================================================
+
+const recordGuestPassScan = async (
+  guestPassId,
+  societyId,
+  session = null
+) => {
+
+  return guestPassRepository.updateLastScanned(
+    guestPassId,
+    societyId,
+    session
+  );
+
+};
+
+module.exports = {
+
+  createGuestPass,
+
+  getGuestPassById,
+
+  getResidentGuestPasses,
+
+  getSocietyGuestPasses,
+
+  approveGuestPass,
+
+  cancelGuestPass,
+
+  extendGuestPass,
+
+  archiveGuestPass,
+
+  regenerateGuestPassQRCode,
+
+  getGuestPassStatistics,
+
+  recordGuestPassScan,
+
+};

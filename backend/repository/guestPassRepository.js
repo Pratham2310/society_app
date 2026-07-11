@@ -1382,3 +1382,44 @@ exports.archiveGuestPass = (
   );
 
 };
+
+
+// =======================================================
+// UPDATE LAST SCANNED
+// =======================================================
+
+exports.updateLastScanned = (
+
+  guestPassId,
+
+  societyId,
+
+  session = null
+
+) => {
+
+  return GuestPass.findOneAndUpdate(
+
+    buildGuestPassFilter(
+
+      guestPassId,
+
+      societyId
+
+    ),
+
+    {
+
+      $set: {
+
+        lastScannedAt: new Date(),
+
+      },
+
+    },
+
+    applyUpdateOptions(session)
+
+  );
+
+};

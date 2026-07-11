@@ -123,6 +123,10 @@ const guestPassSchema = new mongoose.Schema(
       type: Number,
       default: 1,
     },
+    qrPublicId: {
+    type: String,
+    default: null,
+    },
 
     lastQrGeneratedAt: {
       type: Date,
