@@ -287,6 +287,69 @@ const abortTransaction = async (
 
 
 // =======================================================
+// PRIVATE
+// CREATE GUEST PASS INTERNAL
+// =======================================================
+
+const createGuestPassInternal = async (
+
+  guestPassData,
+
+  session = null
+
+) => {
+
+  const guestPass =
+    await guestPassRepository.create(
+
+      guestPassData,
+
+      session
+
+    );
+
+  const qrPayload =
+    buildQrPayload(
+
+      guestPass,
+
+      guestPass.qrToken
+
+    );
+
+  const qrResult =
+    await qrService.generateQRCode(
+
+      qrPayload,
+
+      {
+
+        folder: "guest-passes",
+
+      }
+
+    );
+
+  return guestPassRepository.saveInitialQRCode(
+
+    guestPass._id,
+
+    guestPass.societyId,
+
+    qrResult.qrToken,
+
+    qrResult.qrCode,
+
+    qrResult.qrPublicId,
+
+    session
+
+  );
+
+};
+
+
+// =======================================================
 // CREATE GUEST PASS
 // =======================================================
 
@@ -809,6 +872,78 @@ const getGuestPassStatistics = async (
 
   ]);
 
+
+  // =======================================================
+// CREATE GUEST PASS FROM APPROVAL
+// =======================================================
+
+const createGuestPassFromApproval = async (
+
+  approval,
+
+  resident,
+
+  session = null
+
+) => {
+
+  const qrToken =
+    uuidv4();
+
+  const guestPassData = {
+
+    societyId: approval.societyId,
+
+    residentId: approval.residentId,
+
+    flatId: approval.flatId,
+
+    wingId: approval.wingId,
+
+    guestName: approval.visitorName,
+
+    guestPhone: approval.visitorPhone,
+
+    guestPhoto: approval.visitorPhoto,
+
+    purpose: approval.purpose,
+
+    vehicleNumber: approval.vehicleNumber,
+
+    numberOfGuests:
+      approval.numberOfVisitors,
+
+    arrivalDate:
+      new Date(),
+
+    expiryDate:
+      approval.expiresAt,
+
+    passType:
+      "one_time",
+
+    qrToken,
+
+    qrVersion: 1,
+
+    createdSource:
+      "visitor_approval",
+
+    createdBy:
+      resident.id,
+
+  };
+
+  return createGuestPassInternal(
+
+    guestPassData,
+
+    session
+
+  );
+
+};
+
   return {
 
     total,
@@ -865,5 +1000,9 @@ module.exports = {
   getGuestPassStatistics,
 
   recordGuestPassScan,
+
+  createGuestPass,
+
+  createGuestPassFromApproval,
 
 };
