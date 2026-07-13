@@ -26,6 +26,9 @@ const mapRoutes = require("./routes/mapRoutes");
 const helpRoutes = require("./routes/helpRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
+const guestPassRoutes = require("./routes/guestPassRoutes");
+const gateLogRoutes = require("./routes/gateLogRoutes");
+const visitorApprovalRoutes = require("./routes/visitorApprovalRoutes");
 const AppError = require("./utils/appError");
 
 app.use(express.json());
@@ -55,6 +58,9 @@ app.use("/api/map", mapRoutes);
 app.use("/api/help", helpRoutes);
 app.use("/api/uploads", uploadRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/guest-passes",guestPassRoutes);
+app.use("/api/gate-log",gateLogRoutes);
+app.use("/api/visitor-approvals",visitorApprovalRoutes);
 
 // Home Route
 app.get("/", (req, res) => {
