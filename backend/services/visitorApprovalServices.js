@@ -58,9 +58,7 @@ const validatePendingApproval = (
 
   }
 
-  if (
-    approval.approvalStatus !== "pending"
-  ) {
+  if (approval.approvalStatus !== "pending") {
 
     throw new AppError(
       "Approval request is no longer pending.",
@@ -70,6 +68,7 @@ const validatePendingApproval = (
   }
 
 };
+
 
 
 // =======================================================
@@ -95,6 +94,8 @@ const getValidatedApproval = async (
   return approval;
 
 };
+
+
 
 // =======================================================
 // PRIVATE
@@ -128,17 +129,16 @@ const buildApprovalRequest = (
 
     purpose: body.purpose,
 
-    numberOfVisitors:
-      body.numberOfVisitors,
+    numberOfVisitors: body.numberOfVisitors,
 
-    expiresAt:
-      calculateExpiry(),
+    expiresAt: calculateExpiry(),
 
     createdBy: guard.id,
 
   };
 
 };
+
 
 
 // =======================================================
@@ -150,14 +150,18 @@ const requestApproval = async (
   guard
 ) => {
 
+  // ==========================================
   // Validate Request
+  // ==========================================
 
   const validatedBody = validate(
     requestApprovalBodySchema,
     body
   );
 
-  // Prevent duplicate pending request
+  // ==========================================
+  // Check Duplicate Pending Request
+  // ==========================================
 
   const alreadyPending =
     await visitorApprovalRepository.existsPending(
@@ -179,7 +183,9 @@ const requestApproval = async (
 
   }
 
-  // Build Data
+  // ==========================================
+  // Build Approval Data
+  // ==========================================
 
   const approvalData =
     buildApprovalRequest(
@@ -187,7 +193,9 @@ const requestApproval = async (
       guard
     );
 
-  // Save
+  // ==========================================
+  // Save Approval Request
+  // ==========================================
 
   return visitorApprovalRepository.create(
     approvalData
@@ -205,10 +213,18 @@ const approveRequest = async (
   resident
 ) => {
 
+  // ==========================================
+  // Validate Request
+  // ==========================================
+
   const validatedBody = validate(
     approveRequestBodySchema,
     body
   );
+
+  // ==========================================
+  // Get Approval Request
+  // ==========================================
 
   const approval =
     await getValidatedApproval(
@@ -220,10 +236,17 @@ const approveRequest = async (
 
   try {
 
+    // ==========================================
+    // Start Transaction
+    // ==========================================
+
     session =
       await startTransaction();
 
+    // ==========================================
     // Create Guest Pass
+    // ==========================================
+
     const guestPass =
       await guestPassService.createGuestPassFromApproval(
         approval,
@@ -231,24 +254,36 @@ const approveRequest = async (
         session
       );
 
-    // Attach Guest Pass
-    await visitorApprovalRepository.attachGuestPass(
+    // ==========================================
+    // Mark Request Approved
+    // ==========================================
+
+    await visitorApprovalRepository.approve(
       approval._id,
       resident.societyId,
-      guestPass._id,
+      resident.id,
       session
     );
 
-    // Mark Approved
+    // ==========================================
+    // Attach Guest Pass
+    // ==========================================
+
     const updatedApproval =
-      await visitorApprovalRepository.approve(
+      await visitorApprovalRepository.attachGuestPass(
         approval._id,
         resident.societyId,
-        resident.id,
+        guestPass._id,
         session
       );
 
-    await commitTransaction(session);
+    // ==========================================
+    // Commit
+    // ==========================================
+
+    await commitTransaction(
+      session
+    );
 
     return updatedApproval;
 
@@ -269,7 +304,6 @@ const approveRequest = async (
   }
 
 };
-
 
 
 // =======================================================
@@ -360,9 +394,8 @@ const getApprovalById = async (
 };
 
 
-
 // =======================================================
-// RESIDENT PENDING REQUESTS
+// GET RESIDENT PENDING REQUESTS
 // =======================================================
 
 const getResidentPendingRequests = async (
@@ -380,7 +413,7 @@ const getResidentPendingRequests = async (
 
 
 // =======================================================
-// GUARD PENDING REQUESTS
+// GET GUARD PENDING REQUESTS
 // =======================================================
 
 const getGuardPendingRequests = async (
@@ -394,11 +427,11 @@ const getGuardPendingRequests = async (
     options
   );
 
-};  
+};
 
 
 // =======================================================
-// APPROVAL STATISTICS
+// GET APPROVAL STATISTICS
 // =======================================================
 
 const getApprovalStatistics = async (
