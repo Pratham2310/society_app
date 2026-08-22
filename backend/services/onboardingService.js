@@ -1,3 +1,4 @@
+const logger = require("../utils/logger");
 const mongoose=require("mongoose");
 const onboardingRepository = require("../repository/onboardingRepository");
 const societyService = require("./societyService");
@@ -220,7 +221,7 @@ exports.finalizeOnboarding= async(data,user)=>{
             throw new AppError("onboarding already completed",400);
         }
         const d=draft.data;
-        console.log(d);
+        logger.debug({ draftId: d?._id }, "onboarding draft");
         if (
             !d.societyName ||
             !d.structure ||

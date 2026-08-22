@@ -1,8 +1,37 @@
-const AppError = require("../utils/appError");
+const logger = require("../utils/logger");
+const sentry = require("../config/sentry");
 
 module.exports = (err, req, res, next) => {
 
-  console.error(err);
+  const statusCodeForLog = err.statusCode || 500;
+
+  //A 404 or 403 is the API working correctly; only a 5xx is a defect.
+  //Logging expected errors at error level trains people to ignore the
+  //channel that matters.
+  const log = req.log || logger;
+
+  if (statusCodeForLog >= 500) {
+
+    log.error(
+      { err, statusCode: statusCodeForLog, route: `${req.method} ${req.originalUrl}` },
+      err.message
+    );
+
+    sentry.captureException(err, {
+      requestId: req.id,
+      userId: req.user?.id,
+      societyId: req.user?.societyId,
+      route: `${req.method} ${req.originalUrl}`,
+    });
+
+  } else {
+
+    log.warn(
+      { statusCode: statusCodeForLog, route: `${req.method} ${req.originalUrl}` },
+      err.message
+    );
+
+  }
 
   // Mongo duplicate key
   if (err.code === 11000) {

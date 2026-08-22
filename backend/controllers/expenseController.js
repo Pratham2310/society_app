@@ -1,5 +1,5 @@
 const service=require("../services/expenseService");
-const {createExpenseSchema,toggeleVisibilitySchema}=require("../validation/expenseValidation");
+const {createExpenseSchema,toggleVisibilitySchema}=require("../validation/expenseValidation");
 
 //create expense
 exports.createExpense=async(req,res)=>{
@@ -26,7 +26,7 @@ exports.getExpenses = async (req, res) => {
     });
 
   } catch (err) {
-    res.status(500).json({
+    res.status(err.statusCode || 500).json({
       success: false,
       message: err.message
     });

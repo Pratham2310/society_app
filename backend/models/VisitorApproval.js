@@ -222,10 +222,6 @@ visitorApprovalSchema.index({
 });
 
 // Guest Pass Link
-visitorApprovalSchema.index({
-  guestPassId: 1,
-});
-
 module.exports = mongoose.model(
   "VisitorApproval",
   visitorApprovalSchema

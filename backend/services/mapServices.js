@@ -46,7 +46,7 @@ exports.getSerivceDetails=async(id)=>{
 
 //=============TOGGLE VISIBILITY==========
 exports.toggleVisibility=async(id,req)=>{
-    const allowedRoles=["secretayr","chairman","comitee-member"];
+    const allowedRoles=["secretayr","chairman","committee_member"];
     if(!allowedRoles.includes(req.usersocietyRole)){
         throw new Error("Unauthorized");
     }

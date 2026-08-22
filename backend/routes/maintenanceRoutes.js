@@ -2,10 +2,13 @@ const express = require("express");
 const router = express.Router();
 
 const auth = require("../middleware/authMiddleware");
+const tenantScope =
+  require("../middleware/tenantScope");
 const checkApproved = require("../middleware/checkApproved");
 const ctrl = require("../controllers/maintenanceController");
 
 router.use(auth);
+router.use(tenantScope);
 router.use(checkApproved);
 
 // resident

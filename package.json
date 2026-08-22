@@ -1,20 +1,54 @@
 {
+  "name": "society-app-backend",
+  "version": "1.0.0",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "nodemon backend/server.js",
+    "test": "node --test \"backend/tests/*.test.js\"",
+    "smoke": "node -e \"require('./backend/app');console.log('app loaded OK')\"",
+    "lint": "eslint backend",
+    "lint:fix": "eslint backend --fix",
+    "format": "prettier --write \"backend/**/*.js\"",
+    "format:check": "prettier --check \"backend/**/*.js\"",
+    "seed": "node backend/seedDatabase.js",
+    "bootstrap:superadmin": "node backend/scripts/createSuperadmin.js",
+    "migrate:roles": "node backend/scripts/migrations/001-normalise-roles.js",
+    "migrate:indexes": "node backend/scripts/migrations/002-fix-indexes.js",
+    "openapi": "node backend/scripts/generateOpenApi.js",
+    "openapi:check": "node backend/scripts/generateOpenApi.js --check",
+    "jobs": "node backend/scripts/jobs/runJobs.js",
+    "jobs:dry": "node backend/scripts/jobs/runJobs.js --dry",
+    "test:unit": "node --test \"backend/tests/!(integration).test.js\"",
+    "test:integration": "node --test \"backend/tests/integration.test.js\""
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "dependencies": {
+    "@sentry/node": "^10.70.0",
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.10.0",
     "cors": "^2.8.6",
-    "docker": "^1.0.0",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "express-rate-limit": "^8.3.1",
+    "helmet": "^8.3.0",
     "joi": "^18.0.2",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.2.4",
     "multer": "^2.1.1",
-    "multer-storage-cloudinary": "^2.2.1",
-    "nodemon": "^3.1.14",
+    "pino": "^10.3.1",
+    "pino-http": "^11.0.0",
     "qrcode": "^1.5.4",
     "redis": "^5.11.0",
     "uuid": "^14.0.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0",
+    "nodemon": "^3.1.14",
+    "prettier": "^3.0.0",
+    "supertest": "^7.2.2"
   }
 }

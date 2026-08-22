@@ -3,8 +3,10 @@
 
 // const inviteController=require("../controllers/inviteController");
 // const authMiddleware=require("../middleware/authMiddleware");
+const tenantScope =
+  require("../middleware/tenantScope");
 
-// router.post("/",authMiddleware,inviteController.createInvite);
+// router.post("/",authMiddleware, tenantScope,inviteController.createInvite);
 // router.post("/:token",inviteController.validateInvite);
 
 // module.exports=router;

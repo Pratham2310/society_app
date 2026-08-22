@@ -1,8 +1,8 @@
 const guestPassService = require("../services/guestPassService");
 
-const catchAsync = require("../utils/catchAsync");
+const catchAsync = require("../utils/asyncHandler");
 
-const sendResponse = require("../utils/sendResponse");
+const { sendResponse } = require("../utils/responseHelper");
 
 //=======================================================
 //CREATE GUEST PASS
@@ -43,7 +43,7 @@ exports.getGuestPassById=catchAsync(async(req,res)=>{
 //GET RESIDENT GUEST PASSES
 //=======================================================
 
-exports.getGuestPassById=catchAsync(async(req,res)=>{
+exports.getResidentGuestPasses=catchAsync(async(req,res)=>{
     const {
         residentId
     }=req.params;
@@ -66,7 +66,7 @@ exports.getGuestPassById=catchAsync(async(req,res)=>{
 //=======================================================
 
 exports.getGuestPassesBySociety=catchAsync(async(req,res)=>{
-    const user=req.body;
+    const user=req.user;
     const options=req.query;
     const guestPasses=await guestPassService.getSocietyGuestPasses(user,options);
     sendResponse(res,
@@ -86,7 +86,7 @@ exports.approveGuestPass=catchAsync(async(req,res)=>{
     const body=req.body;
     const user=req.user;
     const guestPass=await guestPassService.approveGuestPass(body,user);
-    sendResponse(Res,
+    sendResponse(res,
         200,
         true,
         "Guest pass approved successfully",
@@ -116,7 +116,7 @@ exports.cancelGuestPass=catchAsync(async(req,res)=>{
 //EXTEND GUEST PASS
 //=======================================================
 
-exports.extendGuestPass=catchAsync(async(Req,res)=>{
+exports.extendGuestPass=catchAsync(async(req,res)=>{
     const body=req.body;
     const user=req.user;
     const guestPass=await guestPassService.extendGuestPass(body,user);
@@ -158,7 +158,7 @@ exports.regenerateGuestPassQRCode=catchAsync(async(req,res)=>{
         200,
         true,
         "Guest pass QR code regenerated successfully",
-        guestpass
+        guestPass
     );
 });
 

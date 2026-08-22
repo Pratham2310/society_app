@@ -42,4 +42,6 @@ const communityFundSchema=new Schema({
 
 },{timestamps:true});
 
-module.exports=mongoose.model("communityFund",communityFundSchema);
+//Registered as "CommunityFund" to match Contribution.fundId's ref.
+//It was previously "communityFund", so populate() on that ref failed.
+module.exports=mongoose.model("CommunityFund",communityFundSchema);

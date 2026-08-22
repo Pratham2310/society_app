@@ -172,7 +172,7 @@ class SalesServices{
     //     return leaders.map(l=>({
     //         _id:l.id,
     //         name:l.name,
-    //         role:l.societyrole
+    //         role:l.societyRole
     //     }));
     // }
 
@@ -189,7 +189,7 @@ class SalesServices{
         return leaders.map(l => ({
             _id: l._id,
             name: l.name,
-            role: l.societyrole
+            role: l.societyRole
         }));
     }
 

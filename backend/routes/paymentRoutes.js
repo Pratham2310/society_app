@@ -7,16 +7,22 @@ const paymentController =
 
 const authMiddleware =
   require("../middleware/authMiddleware");
+const tenantScope =
+  require("../middleware/tenantScope");
 
 const checkApproved =
   require("../middleware/checkApproved");
 
+const idempotency =
+  require("../middleware/idempotency");
+
 const authorizeRoles =
-  require("../middleware/authorizeRoles");
+  require("../middleware/requireRole").requireSocietyRole;
 
 
 // PROTECTED ROUTES
 router.use(authMiddleware);
+router.use(tenantScope);
 router.use(checkApproved);
 
 
@@ -26,6 +32,8 @@ router.use(checkApproved);
 router.post(
 
   "/maintenance/:billId",
+
+  idempotency,
 
   authorizeRoles(
     "secretary",

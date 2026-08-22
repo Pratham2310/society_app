@@ -7,6 +7,9 @@ const maintenanceRepo =
 const AppError =
   require("../utils/appError");
 
+const { withTransaction } =
+  require("../utils/transactionHelper");
+
 
 // ===================================
 // RECORD OFFLINE MAINTENANCE PAYMENT
@@ -32,6 +35,12 @@ exports.recordMaintenancePayment =
         400
       );
     }
+
+    //Recording the payment and marking the bill paid must be
+    //atomic. Without this, a failure between the two leaves an
+    //orphaned payment against a bill that still reads "pending" —
+    //money taken, dues still owed.
+    return withTransaction(async (session) => {
 
     const payment =
       await paymentRepo.create({
@@ -65,16 +74,19 @@ exports.recordMaintenancePayment =
 
         status:
           "success"
-      });
+      }, session);
 
-    bill.status = "paid";
+    await maintenanceRepo.update(
+      bill._id,
+      {
+        status: "paid",
+        paidAt: new Date(),
+        paymentId: payment._id,
+      },
+      session
+    );
 
-    bill.paidAt = new Date();
+      return payment;
 
-    bill.paymentId =
-      payment._id;
-
-    await bill.save();
-
-    return payment;
+    });
 };

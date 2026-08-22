@@ -111,7 +111,6 @@ const guestPassSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      index: true,
     },
 
     qrCode: {
@@ -348,10 +347,6 @@ guestPassSchema.index({
 });
 
 // QR Lookup
-guestPassSchema.index({
-  qrToken: 1,
-});
-
 // Guest Search
 guestPassSchema.index({
   societyId: 1,

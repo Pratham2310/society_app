@@ -1,3 +1,4 @@
+const logger = require("../utils/logger");
 const { v4: uuidv4 } = require("uuid");
 
 const {
@@ -7,7 +8,7 @@ const {
 const {
   uploadBase64,
   deleteFile,
-} = require("../utils/cloudinaryUpload");
+} = require("../utils/cludinaryUploads");
 
 const AppError = require("../utils/appError");
 
@@ -119,13 +120,7 @@ const deleteQRCode = async (
 
   catch (error) {
 
-    console.error(
-
-      "QR Cleanup Failed:",
-
-      error.message
-
-    );
+    logger.error({ err: error }, "QR cleanup failed");
 
   }
 
@@ -270,14 +265,6 @@ const removeQRCode = async (
   );
 
 };
-
-createGuestPassQR()
-
-createParkingQR()
-
-createVisitorQR()
-
-createEventQR()
 
 
 // =======================================================

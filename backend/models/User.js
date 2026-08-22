@@ -1,4 +1,10 @@
 const mongoose = require("mongoose");
+const {
+  SYSTEM_ROLES,
+  SOCIETY_ROLES,
+  SYSTEM_ROLE_VALUES,
+  SOCIETY_ROLE_VALUES,
+} = require("../utils/roles");
 const Schema = mongoose.Schema;
 
 const userSchema = new Schema({
@@ -17,7 +23,7 @@ const userSchema = new Schema({
 
   password: {
     type: String,
-
+    select: false,
   },
 
   phone: {
@@ -41,27 +47,17 @@ const userSchema = new Schema({
   //   default: "member"
   // },
 
+  //Enums come from utils/roles.js so the schema can never drift
+  //from what the middleware and routes enforce.
   systemRole:{
     type:String,
-    enum:[
-      "superadmin",
-      "salesperson",
-      "user"
-    ],
-    default:"user"
+    enum:SYSTEM_ROLE_VALUES,
+    default:SYSTEM_ROLES.USER
   },
   societyRole:{
     type:String,
-    enum:[
-      "chairman",
-      "secretary",
-      "treasurer",
-      "commitee_member",
-      "member",
-      "security"
-
-    ],
-    default:"member"
+    enum:SOCIETY_ROLE_VALUES,
+    default:SOCIETY_ROLES.MEMBER
   },
 
   isOnboarded:{
@@ -137,12 +133,29 @@ const userSchema = new Schema({
     default: "pending"
   },
 
-  otp: String,
+  //OTP is stored as a bcrypt hash, never in plain text.
+  otpHash: { type: String, select: false },
   otpExpires: Date,
+  otpAttempts: { type: Number, default: 0, select: false },
+  otpLastSentAt: { type: Date, select: false },
   isOtpVerified:{
     type:Boolean,
     default:false
   },
+
+  //Bumping this invalidates every token issued before the change.
+  tokenVersion: { type: Number, default: 0 },
+
+  //Expo push tokens, one per device. A resident may have a phone and a
+  //tablet; a guard may share a device across shifts, so the same token
+  //can move between users and must be released when it does.
+  pushTokens: [{
+    token: { type: String, required: true },
+    platform: { type: String, enum: ["ios", "android"] },
+    deviceId: { type: String },
+    updatedAt: { type: Date, default: Date.now },
+    _id: false,
+  }],
   staffCategory:{
     type:String,
     enum:["maid", "cook", "milkman"]
@@ -152,5 +165,24 @@ const userSchema = new Schema({
   }
 
 }, { timestamps: true });
+
+//Second line of defence: even an explicit .select("+password")
+//must not leak through res.json().
+userSchema.set("toJSON", {
+  transform: (doc, ret) => {
+    delete ret.password;
+    delete ret.otpHash;
+    delete ret.otpAttempts;
+    delete ret.otpLastSentAt;
+    delete ret.__v;
+    return ret;
+  },
+});
+
+//Expire OTP material automatically.
+userSchema.index(
+  { otpExpires: 1 },
+  { expireAfterSeconds: 0, partialFilterExpression: { otpHash: { $exists: true } } }
+);
 
 module.exports = mongoose.model("User", userSchema);

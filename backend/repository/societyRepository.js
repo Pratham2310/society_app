@@ -1,3 +1,4 @@
+const logger = require("../utils/logger");
 const Society = require("../models/Society");
 
 class SocietyRepository {
@@ -50,10 +51,7 @@ class SocietyRepository {
     return { data, total };
   }
   async getSocietyDetails(userId,soceityId){
-    console.log("👉 Checking society with:");
-    console.log("userId:", userId);
-    console.log("societyId:", soceityId);
-    //console.log("👉 Society result:", result);
+    logger.debug({ userId, societyId: soceityId }, "checking society membership");
       return Society.findOne({
           _id:soceityId,
           createdBy:userId

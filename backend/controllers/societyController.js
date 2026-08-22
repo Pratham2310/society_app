@@ -19,10 +19,14 @@ exports.verifySocietyCode = async (req, res, next) => {
 
   const society = await societyService.verifySocietyCode(societyCode);
 
+  //city is included so the join screen can confirm the right society
+  //back to the resident ("Found: Emerald Heights, Nashik") rather than
+  //making them trust a name alone.
   res.json({
     data: {
       societyId: society._id,
-      name: society.name
+      name: society.name,
+      city: society.city || null
     }
   });
 };

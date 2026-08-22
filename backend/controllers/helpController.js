@@ -40,7 +40,7 @@ exports.createHelpline = async (
 
   } catch (error) {
 
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       message: error.message
     });
@@ -70,7 +70,7 @@ exports.getHelplines = async (
 
   } catch (error) {
 
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       message: error.message
     });
@@ -101,7 +101,7 @@ exports.updateHelpline = async (
 
   } catch (error) {
 
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       message: error.message
     });
@@ -131,7 +131,7 @@ exports.deleteHelpline = async (
 
   } catch (error) {
 
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       message: error.message
     });

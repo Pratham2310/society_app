@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      # Integration tests exercise real writes, and several flows use
+      # transactions — which require a replica set, not a standalone
+      # mongod. A single-node replica set is enough.
+      - name: Start MongoDB (replica set)
+        uses: supercharge/mongodb-github-action@1.11.0
+        with:
+          mongodb-version: "7.0"
+          mongodb-replica-set: rs0
+
+      - name: Install dependencies
+        run: npm ci
+
+      # The check that would have caught every startup bug in this repo:
+      # if app.js cannot be required, nothing else is worth running.
+      - name: App loads
+        run: npm run smoke
+        env:
+          MONGO_URI: mongodb://127.0.0.1:27017/ci
+          JWT_SECRET: ci-secret-at-least-32-characters-long
+          CLOUDINARY_NAME: ci
+          CLOUDINARY_KEY: ci
+          CLOUDINARY_SECRET: ci
+
+      - name: Tests
+        run: npm test
+        env:
+          MONGO_URI: mongodb://127.0.0.1:27017/ci
+          TEST_MONGO_URI: mongodb://127.0.0.1:27017/ci
+          JWT_SECRET: ci-secret-at-least-32-characters-long
+          CLOUDINARY_NAME: ci
+          CLOUDINARY_KEY: ci
+          CLOUDINARY_SECRET: ci
+
+      # A real gate as of Phase 3: the no-undef backlog is cleared, so
+      # any new undefined identifier fails the build instead of waiting
+      # to surface as a ReferenceError in production.
+      - name: Lint
+        run: npm run lint
+
+      # The spec is generated from the route table. If it is stale, the
+      # clients are generating types from an API that no longer exists.
+      - name: OpenAPI spec is current
+        run: npm run openapi:check

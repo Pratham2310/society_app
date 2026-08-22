@@ -3,12 +3,15 @@ const router = express.Router();
 
 const salesController = require("../controllers/salesController");
 const authMiddleware = require("../middleware/authMiddleware");
-const checkSystemRole = require("../middleware/checkSystemRole");
+const tenantScope =
+  require("../middleware/tenantScope");
+const checkSystemRole =
+  require("../middleware/requireRole").requireSystemRole;
 
 //  DASHBOARD
 router.get(
   "/dashboard",
-  authMiddleware,
+  authMiddleware, tenantScope,
   checkSystemRole("salesperson"),
   salesController.getDashboard
 );
@@ -16,7 +19,7 @@ router.get(
 //  SOCIETIES LIST
 router.get(
   "/societies",
-  authMiddleware,
+  authMiddleware, tenantScope,
   checkSystemRole("salesperson"),
   salesController.getSocities
 );
@@ -26,7 +29,7 @@ router.get(
 // leadership
 router.get(
   "/society/:id/leadership",
-  authMiddleware,
+  authMiddleware, tenantScope,
   checkSystemRole("salesperson"),
   salesController.getLeadership
 );
@@ -34,7 +37,7 @@ router.get(
 // security
 router.get(
   "/society/:id/security",
-  authMiddleware,
+  authMiddleware, tenantScope,
   checkSystemRole("salesperson"),
   salesController.getSecurityPersonnel
 );
@@ -42,7 +45,7 @@ router.get(
 // staff full
 router.get(
   "/society/:id/staff/all",
-  authMiddleware,
+  authMiddleware, tenantScope,
   checkSystemRole("salesperson"),
   salesController.getAllStaff
 );
@@ -50,7 +53,7 @@ router.get(
 // staff preview
 router.get(
   "/society/:id/staff",
-  authMiddleware,
+  authMiddleware, tenantScope,
   checkSystemRole("salesperson"),
   salesController.getStaffPreview
 );
@@ -58,7 +61,7 @@ router.get(
 // residents
 router.get(
   "/society/:id/residents",
-  authMiddleware,
+  authMiddleware, tenantScope,
   checkSystemRole("salesperson"),
   salesController.getResidents
 );
@@ -66,7 +69,7 @@ router.get(
 
 router.get(
   "/society/:id/services",
-  authMiddleware,
+  authMiddleware, tenantScope,
   checkSystemRole("salesperson"),
   salesController.getServices
 );
@@ -74,7 +77,7 @@ router.get(
 //  GENERIC ROUTE LAST (VERY IMPORTANT)
 router.get(
   "/society/:id",
-  authMiddleware,
+  authMiddleware, tenantScope,
   checkSystemRole("salesperson"),
   salesController.getSocietyDetails
 );

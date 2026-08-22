@@ -1,10 +1,11 @@
 const complaintRepo=require("../repository/complaintRepository");
 const mongoose=require("mongoose");
 const AppError=require("../utils/appError");
+const {getPagination,buildPage}=require("../utils/pagination");
 
 //create
-exports.createComplaint = async(Req)=>{
-    const ticketId="TKT-"+Math.floor(1000+math.random()*9000);
+exports.createComplaint = async(req)=>{
+    const ticketId="TKT-"+Math.floor(1000+Math.random()*9000);
 
     const complaint=await complaintRepo.Create({
         ...req.body,
@@ -45,19 +46,30 @@ exports.getComplaints=async(req)=>{
         filter.status = status;
     }
 
-    const complaints = await complaintRepo.findAll(filter);
+    const pagination = getPagination(req.query);
 
-    // 🔥 UI CARD RESPONSE
-    return complaints.map(c => ({
-        _id: c._id,
-        title: c.title,
-        category: c.category,
-        status: c.status,
-        isUrgent: c.isUrgent,
-        image: c.image,
-        flatNumber: c.flatNumber,
-        createdAt: c.createdAt
-    }));
+    const rows = await complaintRepo.findPage(filter, pagination);
+
+    const total = pagination.mode === "offset"
+        ? await complaintRepo.countAll(filter)
+        : null;
+
+    const page = buildPage(rows, pagination, total);
+
+    // UI CARD RESPONSE
+    return {
+        items: page.items.map(c => ({
+            _id: c._id,
+            title: c.title,
+            category: c.category,
+            status: c.status,
+            isUrgent: c.isUrgent,
+            image: c.image,
+            flatNumber: c.flatNumber,
+            createdAt: c.createdAt
+        })),
+        meta: page.meta,
+    };
 };
 
 

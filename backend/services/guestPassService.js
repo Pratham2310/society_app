@@ -1,3 +1,4 @@
+const { v4: uuidv4 } = require("uuid");
 const mongoose = require("mongoose");
 
 const guestPassRepository = require("../repository/guestPassRepository");
@@ -288,6 +289,36 @@ const abortTransaction = async (
 
 // =======================================================
 // PRIVATE
+// BUILD QR PAYLOAD
+// The data encoded into the QR image and read by a guard's
+// scanner. Deliberately minimal: identifiers the gate can verify
+// against the database, never visitor personal details, because
+// a QR code is effectively public once it is on someone's phone.
+// =======================================================
+
+const buildQrPayload = (guestPass, qrToken) => {
+
+  return {
+
+    guestPassId: String(guestPass._id),
+
+    societyId: String(guestPass.societyId),
+
+    qrToken,
+
+    passType: guestPass.passType,
+
+    arrivalDate: guestPass.arrivalDate,
+
+    expiryDate: guestPass.expiryDate,
+
+  };
+
+};
+
+
+// =======================================================
+// PRIVATE
 // CREATE GUEST PASS INTERNAL
 // =======================================================
 
@@ -318,7 +349,7 @@ const createGuestPassInternal = async (
     );
 
   const qrResult =
-    await qrService.generateQRCode(
+    await qrService.createQRCode(
 
       qrPayload,
 
@@ -873,7 +904,22 @@ const getGuestPassStatistics = async (
   ]);
 
 
-  // =======================================================
+
+  return {
+
+    total,
+
+    active,
+
+    expired,
+
+    permanent,
+
+  };
+
+};
+
+// =======================================================
 // CREATE GUEST PASS FROM APPROVAL
 // =======================================================
 
@@ -944,20 +990,6 @@ const createGuestPassFromApproval = async (
 
 };
 
-  return {
-
-    total,
-
-    active,
-
-    expired,
-
-    permanent,
-
-  };
-
-};
-
 
 // =======================================================
 // RECORD GUEST PASS SCAN
@@ -1000,8 +1032,6 @@ module.exports = {
   getGuestPassStatistics,
 
   recordGuestPassScan,
-
-  createGuestPass,
 
   createGuestPassFromApproval,
 
