@@ -64,7 +64,7 @@ Regenerate the TypeScript types whenever it changes:
 - Societies — list, and per-society residents/committee/security/staff
 - Draft — onboardings started but not finalised; resume or discard
 - Services — the shared catalogue residents see on their map
-- Salespeople — superadmin only
+- Salespeople — the roster with societies onboarded per person, superadmin only
 
 The onboarding wizard is reached from Dashboard or Societies rather than
 its own nav item, since it is an action rather than a place.

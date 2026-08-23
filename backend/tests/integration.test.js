@@ -903,3 +903,63 @@ test("a superadmin sees every society on the platform", { skip }, async () => {
   );
 
 });
+
+
+test("a superadmin can see the salesperson roster", { skip }, async () => {
+
+  const User = mongoose.model("User");
+
+  const boss = await User.create({
+    name: "Roster Boss", email: `rboss${Date.now()}@test.com`, phone: "9560000001",
+    systemRole: "superadmin", status: "approved", isVerified: true,
+  });
+
+  const seller = await User.create({
+    name: "Roster Seller", email: `rseller${Date.now()}@test.com`, phone: "9560000002",
+    systemRole: "salesperson", status: "approved", isVerified: true,
+  });
+
+  await onboardSociety(tokenFor(seller), "Roster Society");
+
+  const res = await request(app)
+    .get("/api/v1/admin/salespeople")
+    .set("Authorization", `Bearer ${tokenFor(boss)}`);
+
+  assert.strictEqual(res.status, 200, JSON.stringify(res.body));
+
+  const found = res.body.data.find((p) => p._id === String(seller._id));
+
+  assert.ok(found, "the roster must list salespeople");
+
+  // The number that makes the roster worth looking at.
+  assert.strictEqual(
+    found.societiesOnboarded,
+    1,
+    "each row reports how many societies that person onboarded"
+  );
+
+  // An aggregation ignores select:false, so this is worth asserting.
+  assert.ok(
+    !JSON.stringify(res.body).includes("$2b$"),
+    "no password hash may appear in the roster"
+  );
+
+});
+
+
+test("a salesperson cannot see the roster", { skip }, async () => {
+
+  const User = mongoose.model("User");
+
+  const seller = await User.create({
+    name: "Nosy Seller", email: `nosy${Date.now()}@test.com`, phone: "9560000003",
+    systemRole: "salesperson", status: "approved", isVerified: true,
+  });
+
+  const res = await request(app)
+    .get("/api/v1/admin/salespeople")
+    .set("Authorization", `Bearer ${tokenFor(seller)}`);
+
+  assert.strictEqual(res.status, 403, "colleagues' accounts are not their business");
+
+});

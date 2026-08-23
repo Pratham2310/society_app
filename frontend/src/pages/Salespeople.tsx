@@ -1,65 +1,105 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "../lib/api";
 import { PageHeader } from "../components/Layout";
-import { ErrorBanner } from "../components/ui";
+import { Loading, ErrorBanner, Empty, StatusPill, formatDate } from "../components/ui";
 
 // =======================================================
 // SALESPEOPLE
 //
-// Superadmin only. There is no list endpoint for salespeople yet, so
-// this creates them and confirms the result rather than pretending to
-// show a roster it cannot fetch.
+// Superadmin only. Each row carries the number that actually matters
+// about a salesperson — how many societies they have onboarded.
 // =======================================================
 
-interface Created { _id: string; name: string; email: string; systemRole: string; }
+interface Salesperson {
+  _id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  status?: string;
+  societiesOnboarded?: number;
+  createdAt?: string;
+}
+
+const BLANK = { name: "", email: "", phone: "", password: "" };
 
 export function Salespeople() {
 
   const queryClient = useQueryClient();
 
-  const [form, setForm] = useState({ name: "", email: "", phone: "", password: "" });
-  const [created, setCreated] = useState<Created | null>(null);
+  const [composing, setComposing] = useState(false);
+  const [form, setForm] = useState({ ...BLANK });
 
-  const mutation = useMutation({
-    mutationFn: () => api.post<Created>("/admin/create-salesperson", form),
-    onSuccess: (data) => {
-      setCreated(data);
-      setForm({ name: "", email: "", phone: "", password: "" });
+  const list = useQuery({
+    queryKey: ["salespeople"],
+    queryFn: async () => {
+      const raw = await api.get<unknown>("/admin/salespeople");
+      if (Array.isArray(raw)) return raw as Salesperson[];
+      const obj = raw as Record<string, unknown>;
+      for (const key of ["salespeople", "users", "items"]) {
+        if (Array.isArray(obj?.[key])) return obj[key] as Salesperson[];
+      }
+      return [] as Salesperson[];
+    },
+  });
+
+  const create = useMutation({
+    mutationFn: () => api.post<Salesperson>("/admin/create-salesperson", form),
+    onSuccess: () => {
+      setComposing(false);
+      setForm({ ...BLANK });
+      queryClient.invalidateQueries({ queryKey: ["salespeople"] });
       queryClient.invalidateQueries({ queryKey: ["sales-dashboard"] });
     },
   });
 
-  const valid = form.name && form.email && /^[0-9]{10}$/.test(form.phone) && form.password.length >= 8;
+  const people = list.data ?? [];
+
+  const valid =
+    form.name.trim() &&
+    /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(form.email) &&
+    /^[0-9]{10}$/.test(form.phone) &&
+    form.password.length >= 8;
+
+  const totalSocieties = people.reduce((n, p) => n + (p.societiesOnboarded ?? 0), 0);
 
   return (
     <>
       <PageHeader
         title="Salespeople"
-        subtitle="Salespeople onboard societies and see the ones they created."
+        subtitle="They onboard societies and see the ones they created — never each other's."
+        actions={
+          <button className="btn btn-primary" onClick={() => setComposing((v) => !v)}>
+            {composing ? "Cancel" : "Add salesperson"}
+          </button>
+        }
       />
 
-      <div style={{ display: "grid", gap: "1.25rem", gridTemplateColumns: "minmax(0, 28rem) 1fr" }}>
+      <ErrorBanner error={list.error ?? create.error} />
 
-        <div className="card card-pad stack" style={{ gap: "1rem" }}>
+      {composing && (
+        <div
+          className="card card-pad stack"
+          style={{ gap: "1rem", marginBottom: "1.25rem", maxWidth: "34rem" }}
+        >
 
-          <h2 style={{ fontSize: "1.02rem", fontWeight: 600 }}>Add a salesperson</h2>
-
-          <ErrorBanner error={mutation.error} />
-
-          {created && (
-            <div className="banner banner-ok">
-              {created.name} can now sign in with {created.email}.
+          <div style={{ display: "grid", gap: ".9rem", gridTemplateColumns: "1fr 1fr" }}>
+            <div className="field">
+              <label>Full name</label>
+              <input
+                className="input" value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+              />
             </div>
-          )}
-
-          <div className="field">
-            <label>Full name</label>
-            <input
-              className="input" value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-            />
+            <div className="field">
+              <label>Phone</label>
+              <input
+                className="input tnum" value={form.phone} inputMode="numeric" maxLength={10}
+                onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, "") })}
+                placeholder="10 digits"
+              />
+            </div>
           </div>
 
           <div className="field">
@@ -67,16 +107,11 @@ export function Salespeople() {
             <input
               className="input" type="email" value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
+              placeholder="name@company.com"
             />
-          </div>
-
-          <div className="field">
-            <label>Phone</label>
-            <input
-              className="input tnum" value={form.phone} inputMode="numeric" maxLength={10}
-              onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, "") })}
-              placeholder="10 digits"
-            />
+            <span style={{ fontSize: ".8rem", color: "var(--muted)" }}>
+              Must use a real top-level domain — .local and .test addresses are rejected.
+            </span>
           </div>
 
           <div className="field">
@@ -91,28 +126,68 @@ export function Salespeople() {
           <button
             className="btn btn-primary"
             style={{ alignSelf: "flex-start" }}
-            disabled={!valid || mutation.isPending}
-            onClick={() => mutation.mutate()}
+            disabled={!valid || create.isPending}
+            onClick={() => create.mutate()}
           >
-            {mutation.isPending ? <><span className="spinner" /> Creating</> : "Create salesperson"}
+            {create.isPending ? <><span className="spinner" /> Creating</> : "Create salesperson"}
           </button>
 
         </div>
+      )}
 
-        <div className="card card-pad stack" style={{ gap: ".7rem", alignSelf: "flex-start" }}>
-          <h2 style={{ fontSize: "1.02rem", fontWeight: 600 }}>What they can do</h2>
-          <ul style={{ margin: 0, paddingLeft: "1.1rem", color: "var(--ink-soft)", fontSize: ".93rem" }}>
-            <li>Onboard a society and create its secretary</li>
-            <li>See the societies they onboarded, and the residents in them</li>
-            <li>Manage the service catalogue</li>
-          </ul>
-          <p style={{ fontSize: ".9rem", color: "var(--muted)" }}>
-            They cannot see another salesperson's societies. Only a superadmin
-            reads across the whole platform.
-          </p>
+      <section className="card">
+
+        <div className="card-head">
+          <h2>Team</h2>
+          <span style={{ fontSize: ".88rem", color: "var(--muted)" }} className="tnum">
+            {people.length} {people.length === 1 ? "person" : "people"}
+            {totalSocieties > 0 && ` · ${totalSocieties} societies onboarded`}
+          </span>
         </div>
 
-      </div>
+        {list.isLoading ? (
+          <Loading />
+        ) : people.length === 0 ? (
+          <Empty>
+            No salespeople yet. They are the ones who onboard societies,
+            so this is usually the first thing to set up.
+          </Empty>
+        ) : (
+          <div className="tablewrap">
+            <table className="data">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Societies</th>
+                  <th>Status</th>
+                  <th>Added</th>
+                </tr>
+              </thead>
+              <tbody>
+                {people.map((p) => (
+                  <tr key={p._id}>
+                    <td style={{ fontWeight: 600 }}>{p.name}</td>
+                    <td style={{ color: "var(--muted)" }}>{p.email}</td>
+                    <td className="mono tnum">{p.phone ?? "—"}</td>
+                    <td>
+                      <span
+                        className={`pill ${p.societiesOnboarded ? "pill-ok" : "pill-muted"}`}
+                      >
+                        {p.societiesOnboarded ?? 0}
+                      </span>
+                    </td>
+                    <td><StatusPill status={p.status} /></td>
+                    <td>{formatDate(p.createdAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+      </section>
     </>
   );
 

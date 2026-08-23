@@ -41,3 +41,47 @@ exports.createSuperAdmin=async(data)=>{
     });
     return superAdmin;
 }
+
+// =======================================================
+// LIST SALESPEOPLE
+//
+// A roster is only useful with the number that matters next to each
+// name, so this joins in how many societies each one has onboarded
+// rather than making the console fetch that per row.
+// =======================================================
+
+exports.listSalespeople = async () => {
+
+    const User = require("../models/User");
+
+    return User.aggregate([
+
+        { $match: { systemRole: "salesperson" } },
+
+        {
+            $lookup: {
+                from: "societies",
+                localField: "_id",
+                foreignField: "createdBy",
+                as: "societies",
+            },
+        },
+
+        {
+            $project: {
+                name: 1,
+                email: 1,
+                phone: 1,
+                status: 1,
+                createdAt: 1,
+                societiesOnboarded: { $size: "$societies" },
+                // Never project password or OTP material, even though
+                // both are select:false — an aggregation ignores that.
+            },
+        },
+
+        { $sort: { createdAt: -1 } },
+
+    ]);
+
+};
