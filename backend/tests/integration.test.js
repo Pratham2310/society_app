@@ -523,3 +523,126 @@ test("the expiry job closes out passes that are past their date", { skip }, asyn
   assert.strictEqual(again.affected, 0, "the job must be safe to re-run");
 
 });
+
+
+// =======================================================
+// REGISTRATION READ PATH
+// The screens before a resident has an account.
+// =======================================================
+
+test("a society code resolves to a society, case and spacing forgiven", { skip }, async () => {
+
+  const res = await request(app)
+    .post("/api/v1/societies/verify-code")
+    .send({ societyCode: " aaa111 " });
+
+  assert.strictEqual(res.status, 200, JSON.stringify(res.body));
+  assert.strictEqual(res.body.data.name, "Society A");
+  assert.ok("city" in res.body.data, "the join screen shows the city back");
+
+});
+
+
+test("an unknown code is a clear 404, not a crash", { skip }, async () => {
+
+  const res = await request(app)
+    .post("/api/v1/societies/verify-code")
+    .send({ societyCode: "000000" });
+
+  assert.strictEqual(res.status, 404);
+  assert.match(res.body.message, /secretary/i, "tell them who to ask");
+
+});
+
+
+test("wings, floors and flats are readable without a token", { skip }, async () => {
+
+  // The resident is mid-registration. register-full is what creates
+  // the account, so this step cannot require one.
+  const res = await request(app)
+    .get(`/api/v1/societies/${ids.societyA}/structure`);
+
+  assert.strictEqual(res.status, 200, JSON.stringify(res.body));
+
+  const { society, wings } = res.body.data;
+
+  assert.strictEqual(society.name, "Society A");
+  assert.ok(wings.length >= 1, "the society has wings");
+
+  const wing = wings[0];
+
+  assert.ok(wing.floors.length >= 1, "the wing has floors");
+  assert.ok(
+    typeof wing.floors[0].availableCount === "number",
+    "a floor reports how many flats are free"
+  );
+
+  const flat = wing.floors[0].flats[0];
+
+  assert.ok(flat.flatNumber, "flats are identified by number");
+  assert.strictEqual(
+    typeof flat.isOccupied,
+    "boolean",
+    "occupied flats must be marked so the picker can disable them"
+  );
+
+});
+
+
+test("the structure exposes no resident data", { skip }, async () => {
+
+  const res = await request(app)
+    .get(`/api/v1/societies/${ids.societyA}/structure`);
+
+  const body = JSON.stringify(res.body);
+
+  // A building layout is public knowledge. Who lives in it is not.
+  for (const leak of ["resa@test.com", "9000000001", "Res A", "password"]) {
+    assert.ok(
+      !body.includes(leak),
+      `the public structure must not leak "${leak}"`
+    );
+  }
+
+});
+
+
+test("a malformed society id is a 400, not a 500", { skip }, async () => {
+
+  const res = await request(app)
+    .get("/api/v1/societies/not-an-id/structure");
+
+  assert.strictEqual(res.status, 400);
+
+});
+
+
+test("one resident claiming a flat blocks the next", { skip }, async () => {
+
+  const Flat = mongoose.model("Flat");
+
+  const flat = await Flat.findOne({ societyId: ids.societyA }).lean();
+
+  // Simulate the claim registerFull performs.
+  const first = await Flat.findOneAndUpdate(
+    { _id: flat._id, isOccupied: false },
+    { $set: { isOccupied: true } },
+    { new: true }
+  );
+
+  const second = await Flat.findOneAndUpdate(
+    { _id: flat._id, isOccupied: false },
+    { $set: { isOccupied: true } },
+    { new: true }
+  );
+
+  assert.ok(first, "the first claim succeeds");
+  assert.strictEqual(
+    second,
+    null,
+    "the second must find nothing to claim — this is what stops two residents taking one flat"
+  );
+
+  await Flat.updateOne({ _id: flat._id }, { $set: { isOccupied: false } });
+
+});

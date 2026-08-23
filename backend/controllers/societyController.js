@@ -30,3 +30,18 @@ exports.verifySocietyCode = async (req, res, next) => {
     }
   });
 };
+
+// GET REGISTRATION STRUCTURE
+// Public: the resident has no account yet at this point in the flow.
+exports.getRegistrationStructure = async (req, res) => {
+
+  const structure = await societyService.getRegistrationStructure(
+    req.params.societyId
+  );
+
+  res.json({
+    message: "Society structure fetched successfully",
+    data: structure
+  });
+
+};

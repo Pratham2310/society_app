@@ -47,3 +47,12 @@ exports.verifySocietyCodeSchema = Joi.object({
         })
 
 });
+
+exports.societyIdParamSchema = Joi.object({
+  societyId: Joi.string()
+    .pattern(/^[0-9a-fA-F]{24}$/)
+    .required()
+    .messages({
+      "string.pattern.base": "societyId must be a valid id"
+    })
+});

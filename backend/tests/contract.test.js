@@ -380,7 +380,13 @@ test("the public surface is exactly the auth and signup flows", () => {
 
   // Locking this list means a new unauthenticated endpoint fails the
   // build rather than shipping quietly.
+  // Sorted, so GET precedes POST.
   assert.deepStrictEqual(publicOps, [
+    // Wings, floors and flats for the "Where do you live?" step. The
+    // resident has no token yet — register-full is what creates the
+    // account. Gated by the society code, and exposes only a building
+    // layout with occupancy: no names, contacts or ownership.
+    "GET /api/v1/societies/{societyId}/structure",
     "POST /api/v1/auth/login",
     "POST /api/v1/auth/register",
     "POST /api/v1/auth/send-otp",

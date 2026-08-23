@@ -370,6 +370,82 @@
         }
       }
     },
+    "/api/v1/societies/{societyId}/structure": {
+      "get": {
+        "tags": [
+          "societies"
+        ],
+        "summary": "getRegistrationStructure",
+        "description": "Paginated. Responses carry a `meta` object.",
+        "parameters": [
+          {
+            "name": "societyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "MongoDB ObjectId"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "description": "Page size. Values above 100 are clamped."
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "description": "Offset pagination — used by the web consoles."
+          },
+          {
+            "name": "mode",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "cursor"
+              ]
+            },
+            "description": "Set to `cursor` to open a cursor sequence. Used by the Expo app, whose lists scroll infinitely."
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "The `meta.nextCursor` from the previous page."
+          }
+        ],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
     "/api/v1/flats": {
       "get": {
         "tags": [
@@ -7048,5 +7124,5 @@
       }
     }
   },
-  "x-operation-count": 137
+  "x-operation-count": 138
 }
