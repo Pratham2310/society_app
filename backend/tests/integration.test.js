@@ -820,3 +820,86 @@ test("onboarding produces a joinable society", { skip }, async () => {
   );
 
 });
+
+
+// =======================================================
+// PLATFORM SCOPE
+// A salesperson sees what they onboarded. A superadmin owns the
+// platform and must see everything, or the console shows them an
+// empty dashboard on a populated system.
+// =======================================================
+
+test("a salesperson sees only the societies they onboarded", { skip }, async () => {
+
+  const User = mongoose.model("User");
+
+  const [alice, bob] = await User.create([
+    { name: "Alice Sales", email: `alice${Date.now()}@test.com`, phone: "9550000001",
+      systemRole: "salesperson", status: "approved", isVerified: true },
+    { name: "Bob Sales", email: `bob${Date.now()}@test.com`, phone: "9550000002",
+      systemRole: "salesperson", status: "approved", isVerified: true },
+  ]);
+
+  await onboardSociety(tokenFor(alice), "Alice Society");
+
+  const hers = await request(app)
+    .get("/api/v1/sales/societies?page=1&limit=20")
+    .set("Authorization", `Bearer ${tokenFor(alice)}`);
+
+  const his = await request(app)
+    .get("/api/v1/sales/societies?page=1&limit=20")
+    .set("Authorization", `Bearer ${tokenFor(bob)}`);
+
+  assert.ok(
+    hers.body.data.societies.length >= 1,
+    "the salesperson who onboarded it must see it"
+  );
+
+  assert.strictEqual(
+    his.body.data.societies.length,
+    0,
+    "another salesperson must not see it"
+  );
+
+});
+
+
+test("a superadmin sees every society on the platform", { skip }, async () => {
+
+  const User = mongoose.model("User");
+
+  const seller = await User.create({
+    name: "Seller", email: `seller${Date.now()}@test.com`, phone: "9550000003",
+    systemRole: "salesperson", status: "approved", isVerified: true,
+  });
+
+  const boss = await User.create({
+    name: "Boss", email: `boss${Date.now()}@test.com`, phone: "9550000004",
+    systemRole: "superadmin", status: "approved", isVerified: true,
+  });
+
+  await onboardSociety(tokenFor(seller), "Someone Elses Society");
+
+  // The superadmin onboarded none of these. Filtering on createdBy
+  // showed them zero societies on a platform that had several.
+  const res = await request(app)
+    .get("/api/v1/sales/societies?page=1&limit=50")
+    .set("Authorization", `Bearer ${tokenFor(boss)}`);
+
+  assert.strictEqual(res.status, 200);
+
+  assert.ok(
+    res.body.data.societies.length >= 1,
+    "a superadmin must see societies they did not personally onboard"
+  );
+
+  const dash = await request(app)
+    .get("/api/v1/sales/dashboard")
+    .set("Authorization", `Bearer ${tokenFor(boss)}`);
+
+  assert.ok(
+    dash.body.data.totalSocieties >= 1,
+    "the dashboard count must match what the list shows"
+  );
+
+});

@@ -10,14 +10,23 @@ const User = require("../models/User");
 const AppError = require("../utils/appError");
 
 
+// Callers pass req.user. A superadmin gets an unscoped view; everyone
+// else is limited to what they onboarded.
+const ownerScope = (user) =>
+    user?.systemRole === "superadmin" ? null : (user?.id ?? user);
+
 class SalesServices{
-    async getDashboardData(userId){
+    async getDashboardData(user){
+        const userId = ownerScope(user);
+        // countVerifiedMembers counts members a salesperson brought in;
+        // for a superadmin that means every verified member.
+        const memberScope = userId;
         const [
             totalSocieties,
             totalVerifiedMembers,
             recentSocieties,
         ]=await Promise.all([societyRepository.countBySalesperson(userId),
-            userRepository.countVerifiedMembers(userId),
+            userRepository.countVerifiedMembers(memberScope),
             societyRepository.getRecentSociety(userId)
         ]);
 
@@ -28,7 +37,8 @@ class SalesServices{
         };
     }
 
-    async getAllSocieties(userId,query){
+    async getAllSocieties(user,query){
+        const userId = ownerScope(user);
         const page=parseInt(query.page)||1;
         const limit=parseInt(query.limit)||10;
         const search=query.search||"";
@@ -43,7 +53,8 @@ class SalesServices{
             }
         }
     };
-    async getSocietyDetails(userId,soceityId){
+    async getSocietyDetails(user,soceityId){
+        const userId = ownerScope(user);
         const society=await societyRepository.getSocietyDetails(userId,soceityId);
         if(!society){
             throw new Error("soceity not found or access denied");
@@ -67,10 +78,11 @@ class SalesServices{
             }
         };
     }
-    async getResidents(UserId,societyId,query={})
+    async getResidents(user,societyId,query={})
     {
+        const userId = ownerScope(user);
         //security check 
-        const society = await societyRepository.getSocietyDetails(UserId,societyId);
+        const society = await societyRepository.getSocietyDetails(userId,societyId);
 
         if(!society)
         {
@@ -91,8 +103,9 @@ class SalesServices{
         };
     }
 
-    async getSecurityPersonnel(userId,societyId)
+    async getSecurityPersonnel(user,societyId)
     {
+        const userId = ownerScope(user);
         const society=await societyRepository.getSocietyDetails(userId,societyId);
         if(!society)
         {
@@ -110,8 +123,9 @@ class SalesServices{
         }));
     }
 
-    async getStaffPreview(userId,societyId,query={})
+    async getStaffPreview(user,societyId,query={})
     {
+        const userId = ownerScope(user);
         const society= await societyRepository.getSocietyDetails(userId,societyId)
         if(!society)
         {
@@ -129,8 +143,9 @@ class SalesServices{
         }));
 
     }
-    async getAllStaff(userId,societyId,query={})
+    async getAllStaff(user,societyId,query={})
     {
+        const userId = ownerScope(user);
         const society=await societyRepository.getSocietyDetails(userId,societyId)
 
         if(!society)
@@ -160,7 +175,7 @@ class SalesServices{
         };
     }
 
-    // async getLeadership(userId,societyId)
+    // async getLeadership(user,societyId)
     // {
     //     console.log("👉 Incoming societyId:", societyId);
     //     const society= await societyRepository.getSocietyDetails(userId,societyId)
@@ -176,7 +191,8 @@ class SalesServices{
     //     }));
     // }
 
-    async getLeadership(userId, societyId) {
+    async getLeadership(user, societyId) {
+        const userId = ownerScope(user);
 
         const society = await societyRepository.getSocietyDetails(userId, societyId);
 
