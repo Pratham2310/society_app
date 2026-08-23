@@ -668,3 +668,155 @@ test("a society code with letters is rejected outright", { skip }, async () => {
   }
 
 });
+
+
+// =======================================================
+// SUPERADMIN ONBOARDING
+// The chain that turns a sales call into a society residents can join.
+// =======================================================
+
+const onboardSociety = async (token, label) => {
+
+  const stamp = `${Date.now()}${Math.floor(Math.random() * 1000)}`;
+
+  const step1 = await request(app)
+    .post("/api/v1/onboarding/step1")
+    .set("Authorization", `Bearer ${token}`)
+    .send({
+      societyName: `${label} ${stamp}`,
+      address: "1 Test Road", city: "Nashik", state: "MH", pincode: "422001",
+    });
+
+  assert.strictEqual(step1.status, 200, JSON.stringify(step1.body));
+
+  const draftId = step1.body.data._id;
+
+  await request(app)
+    .post("/api/v1/onboarding/step2")
+    .set("Authorization", `Bearer ${token}`)
+    .send({ draftId, structure: [{ name: "A", totalFloors: 2, flatsPerFloor: 3 }] });
+
+  await request(app)
+    .post("/api/v1/onboarding/step3")
+    .set("Authorization", `Bearer ${token}`)
+    .send({
+      draftId,
+      secretary: {
+        name: "Onboard Sec",
+        email: `onboardsec${stamp}@test.com`,
+        phone: String(9600000000 + (Number(stamp) % 99999999)).slice(0, 10),
+        password: "Password123!",
+      },
+    });
+
+  await request(app)
+    .post("/api/v1/onboarding/step4")
+    .set("Authorization", `Bearer ${token}`)
+    .send({ draftId, services: [] });
+
+  return request(app)
+    .post("/api/v1/onboarding/finalize")
+    .set("Authorization", `Bearer ${token}`)
+    .send({ draftId });
+
+};
+
+
+test("a superadmin can do anything a salesperson can", { skip }, async () => {
+
+  const User = mongoose.model("User");
+
+  const superadmin = await User.create({
+    name: "Super", email: `super${Date.now()}@test.com`, phone: "9500000001",
+    systemRole: "superadmin", status: "approved", isVerified: true,
+  });
+
+  // Onboarding and every /sales route is gated on "salesperson". A
+  // superadmin owning the platform but getting 403 on the console's two
+  // core jobs was the state before this.
+  const res = await request(app)
+    .get("/api/v1/sales/dashboard")
+    .set("Authorization", `Bearer ${tokenFor(superadmin)}`);
+
+  assert.strictEqual(res.status, 200, "superadmin must reach salesperson routes");
+
+});
+
+
+test("a superadmin can create a salesperson", { skip }, async () => {
+
+  const User = mongoose.model("User");
+
+  const superadmin = await User.create({
+    name: "Super2", email: `super2${Date.now()}@test.com`, phone: "9500000002",
+    systemRole: "superadmin", status: "approved", isVerified: true,
+  });
+
+  const stamp = Date.now();
+
+  // userRepository dropped findByEmail and createUser by reassigning
+  // module.exports, so this failed with "is not a function".
+  const res = await request(app)
+    .post("/api/v1/admin/create-salesperson")
+    .set("Authorization", `Bearer ${tokenFor(superadmin)}`)
+    .send({
+      name: "New Sales",
+      email: `newsales${stamp}@test.com`,
+      password: "Password123!",
+      phone: String(9400000000 + (stamp % 99999999)).slice(0, 10),
+    });
+
+  assert.strictEqual(res.status, 201, JSON.stringify(res.body));
+
+  const created = await User.findOne({ email: `newsales${stamp}@test.com` }).lean();
+
+  assert.strictEqual(created.systemRole, "salesperson");
+
+});
+
+
+test("onboarding produces a joinable society", { skip }, async () => {
+
+  const User = mongoose.model("User");
+
+  const superadmin = await User.create({
+    name: "Super3", email: `super3${Date.now()}@test.com`, phone: "9500000003",
+    systemRole: "superadmin", status: "approved", isVerified: true,
+  });
+
+  const res = await onboardSociety(tokenFor(superadmin), "Onboarded");
+
+  assert.strictEqual(res.status, 200, JSON.stringify(res.body));
+
+  const { society, secretary } = res.body.data;
+
+  // finalize passed wingData.wingName while step2 stores "name", so
+  // createWing always got undefined and no society could be onboarded.
+  assert.ok(society.societyCode, "the society must get a code");
+  assert.match(society.societyCode, /^[0-9]{6}$/, "codes are six digits");
+  assert.ok(secretary, "onboarding creates the secretary account");
+  assert.strictEqual(secretary.societyRole, "secretary");
+
+  // The whole point: a resident can now join with that code.
+  const verify = await request(app)
+    .post("/api/v1/societies/verify-code")
+    .send({ societyCode: society.societyCode });
+
+  assert.strictEqual(verify.status, 200, "the issued code must resolve");
+
+  const structure = await request(app)
+    .get(`/api/v1/societies/${society._id}/structure`);
+
+  assert.strictEqual(structure.status, 200);
+
+  const wings = structure.body.data.wings;
+
+  assert.strictEqual(wings.length, 1, "the wing from step2 exists");
+  assert.strictEqual(wings[0].name, "A");
+  assert.strictEqual(
+    wings[0].floors.reduce((n, f) => n + f.flats.length, 0),
+    6,
+    "2 floors x 3 flats were generated"
+  );
+
+});

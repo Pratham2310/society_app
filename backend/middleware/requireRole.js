@@ -1,5 +1,5 @@
 const AppError = require("../utils/appError");
-const { normaliseRole, CROSS_TENANT } = require("../utils/roles");
+const { normaliseRole, CROSS_TENANT, SYSTEM_ROLES } = require("../utils/roles");
 
 // =======================================================
 // ROLE GUARDS
@@ -21,6 +21,15 @@ const requireSystemRole = (...allowed) => {
   return (req, res, next) => {
 
     const role = normaliseRole(req.user?.systemRole);
+
+    // A superadmin owns the platform, so anything a salesperson may do
+    // they may do too. Without this the superadmin console could not
+    // onboard a society or reach any /sales route — both 403 — even
+    // though onboarding is explicitly a superadmin capability.
+    // requireSocietyRole already grants the same superset.
+    if (role === SYSTEM_ROLES.SUPERADMIN) {
+      return next();
+    }
 
     if (!role || !permitted.includes(role)) {
       return next(

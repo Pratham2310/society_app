@@ -129,4 +129,17 @@ class UserRepository {
 }
 }
 
-module.exports = new UserRepository();
+// The five exports.* helpers above were being discarded: assigning to
+// module.exports replaces the object they were attached to, so
+// findByEmail, findByPhone, findById, createUser and getUsers all
+// resolved to undefined. That is why creating a salesperson failed with
+// "userRepository.findByEmail is not a function".
+//
+// Merging keeps both shapes working for existing callers.
+module.exports = Object.assign(new UserRepository(), {
+  findByEmail: exports.findByEmail,
+  findByPhone: exports.findByPhone,
+  findById: exports.findById,
+  createUser: exports.createUser,
+  getUsers: exports.getUsers,
+});

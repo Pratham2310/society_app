@@ -251,9 +251,15 @@ exports.finalizeOnboarding= async(data,user)=>{
         //create wing +flats
         for(const wingData of d.structure)
         {
+            //The Wing model calls this "name", and step2 stores the
+            //structure with that key. Reading wingName here meant
+            //createWing always received undefined and rejected the
+            //whole finalize with "All fields are required" — so no
+            //society could ever be onboarded. wingName is accepted as
+            //a fallback for any client already sending it.
             await wingService.createWing({
                 societyId:society.id,
-                name:wingData.wingName,
+                name:wingData.name || wingData.wingName,
                 totalFloors:wingData.totalFloors,
                 flatsPerFloor:wingData.flatsPerFloor,
                 createdBy:user.id
