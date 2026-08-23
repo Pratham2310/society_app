@@ -32,7 +32,19 @@ export function Residents() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["pending-users"],
-    queryFn: () => api.get<PendingUser[]>("/users/pending-users"),
+    queryFn: async () => {
+      // This endpoint answers { users: [...] } rather than a bare
+      // array, so taking the response as a list silently rendered an
+      // empty table while people were actually waiting. Normalise
+      // instead of trusting one shape.
+      const raw = await api.get<unknown>("/users/pending-users");
+      if (Array.isArray(raw)) return raw as PendingUser[];
+      const obj = raw as Record<string, unknown>;
+      for (const key of ["users", "items", "pendingUsers"]) {
+        if (Array.isArray(obj?.[key])) return obj[key] as PendingUser[];
+      }
+      return [] as PendingUser[];
+    },
   });
 
   const decide = useMutation({

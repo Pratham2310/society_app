@@ -7,6 +7,27 @@ The web console for the three roles that do not use the mobile app:
 Residents and security staff use the Expo app instead — signing in here
 with those roles shows a message saying so.
 
+## Demo data
+
+    npm run seed:demo             # from the repo root
+    npm run seed:demo -- --clean  # remove it again
+
+Creates two salespeople, four societies with wings and flats generated
+the same way onboarding generates them, a secretary per society, four
+residents awaiting approval, notices, and a service catalogue. Every
+account uses the password in that script's header.
+
+Accounts worth signing in as:
+
+| Email | Sees |
+|---|---|
+| `rohitdeshmuk@demo.example.com` | Salesperson — two societies |
+| `sec.emeraldheigh@demo.example.com` | Secretary — 4 approvals, 3 notices |
+
+Note on emails: Joi validates the TLD against the IANA list, so
+addresses ending in `.local` or `.test` are rejected at both
+registration and login. Use a real TLD.
+
 ## Running it
 
 The backend must be running first, and this origin must be in its

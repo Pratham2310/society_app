@@ -20,7 +20,8 @@
     "jobs": "node backend/scripts/jobs/runJobs.js",
     "jobs:dry": "node backend/scripts/jobs/runJobs.js --dry",
     "test:unit": "node --test \"backend/tests/!(integration).test.js\"",
-    "test:integration": "node --test \"backend/tests/integration.test.js\""
+    "test:integration": "node --test \"backend/tests/integration.test.js\"",
+    "seed:demo": "node backend/scripts/seedDemo.js"
   },
   "engines": {
     "node": ">=20.0.0"
