@@ -6,20 +6,29 @@
    ======================================================= */
 
 :root {
-  --ground: #EEF1E2;
-  --surface: #FDFBF7;
-  --surface-2: #F6F4EC;
-  --sunk: #E6EAD7;
+  /* Taken from the admin panel screenshot: a pale sage sidebar, a deep
+     maroon wordmark, and a white pill marking the active item. */
+  --ground: #F4F6EC;
+  --surface: #FFFFFF;
+  --surface-2: #F8FAF1;
+  --sunk: #EAF0D8;
+
+  --nav: #E9F0DA;
+  --nav-ink: #6B7360;
+  --nav-ink-active: #1F2418;
+  --nav-active-bg: #FFFFFF;
+
+  --brand: #8A2B1E;
 
   --ink: #1C1A16;
   --ink-soft: #423D34;
-  --muted: #6E685C;
-  --line: #DCDDCB;
-  --line-strong: #C4C6AE;
+  --muted: #6E7263;
+  --line: #E0E5D2;
+  --line-strong: #C8D0B4;
 
-  --accent: #A93F1B;
-  --accent-hover: #8F3416;
-  --accent-tint: #F7E7DF;
+  --accent: #C0392B;
+  --accent-hover: #A32E22;
+  --accent-tint: #FBEAE7;
 
   --ok: #3F6B45;
   --ok-tint: #E4EDE2;
@@ -39,19 +48,26 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --ground: #16170F;
-    --surface: #1E1F16;
-    --surface-2: #232418;
-    --sunk: #121309;
+    --ground: #14160E;
+    --surface: #1C1F15;
+    --surface-2: #212517;
+    --sunk: #101208;
+
+    --nav: #1A1D12;
+    --nav-ink: #9AA48C;
+    --nav-ink-active: #F2F5E8;
+    --nav-active-bg: #2A2F1D;
+
+    --brand: #E28A76;
 
     --ink: #F0EDE2;
     --ink-soft: #D5D1C3;
-    --muted: #9C9887;
-    --line: #2E301F;
-    --line-strong: #43462F;
+    --muted: #9AA48C;
+    --line: #2B301C;
+    --line-strong: #414830;
 
-    --accent: #E08256;
-    --accent-hover: #EE9A72;
+    --accent: #E2705E;
+    --accent-hover: #EE8C7A;
     --accent-tint: #33190E;
 
     --ok: #7BB07F;
@@ -68,19 +84,26 @@
 }
 
 :root[data-theme="dark"] {
-  --ground: #16170F;
-  --surface: #1E1F16;
-  --surface-2: #232418;
-  --sunk: #121309;
+  --ground: #14160E;
+  --surface: #1C1F15;
+  --surface-2: #212517;
+  --sunk: #101208;
+
+  --nav: #1A1D12;
+  --nav-ink: #9AA48C;
+  --nav-ink-active: #F2F5E8;
+  --nav-active-bg: #2A2F1D;
+
+  --brand: #E28A76;
 
   --ink: #F0EDE2;
   --ink-soft: #D5D1C3;
-  --muted: #9C9887;
-  --line: #2E301F;
-  --line-strong: #43462F;
+  --muted: #9AA48C;
+  --line: #2B301C;
+  --line-strong: #414830;
 
-  --accent: #E08256;
-  --accent-hover: #EE9A72;
+  --accent: #E2705E;
+  --accent-hover: #EE8C7A;
   --accent-tint: #33190E;
 
   --ok: #7BB07F;
@@ -282,4 +305,63 @@ table.data tbody tr:hover { background: var(--surface-2); }
 
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+/* ---------- sidebar ---------- */
+/* The nav is its own surface — sage, not a card — with the active item
+   lifted out on white. That contrast is what makes the current page
+   findable at a glance. */
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+  margin: .12rem .6rem;
+  padding: .58rem .75rem;
+  border-radius: 8px;
+  font-size: .95rem;
+  color: var(--nav-ink);
+  text-decoration: none;
+  transition: background .12s ease, color .12s ease;
+}
+.nav-item:hover { background: rgba(255, 255, 255, .45); color: var(--nav-ink-active); }
+
+.nav-item.is-active {
+  background: var(--nav-active-bg);
+  color: var(--nav-ink-active);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(31, 36, 24, .1);
+}
+
+.nav-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex: 0 0 auto;
+  stroke-width: 1.7;
+}
+.nav-item.is-active .nav-icon { color: var(--accent); }
+
+.nav-section {
+  padding: 1rem 1.35rem .3rem;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: .62rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.brand {
+  font-family: Archivo, sans-serif;
+  font-weight: 700;
+  font-size: 1.14rem;
+  letter-spacing: -.015em;
+  color: var(--brand);
+}
+.brand-sub {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: .62rem;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: .12rem;
 }

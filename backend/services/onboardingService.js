@@ -281,3 +281,26 @@ exports.finalizeOnboarding= async(data,user)=>{
         throw error;
     }
 };
+
+// =======================
+// DRAFTS
+// =======================
+
+exports.listDrafts = async (user) => {
+    return onboardingRepository.findDraftsByUser(user.id);
+};
+
+exports.discardDraft = async (draftId, user) => {
+
+    const deleted = await onboardingRepository.deleteDraftByIdAndUser(
+        draftId,
+        user.id
+    );
+
+    if (!deleted) {
+        throw new AppError("Draft not found", 404);
+    }
+
+    return deleted;
+
+};

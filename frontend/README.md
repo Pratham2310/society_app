@@ -39,10 +39,14 @@ Regenerate the TypeScript types whenever it changes:
 ## Screens
 
 **Platform** (superadmin, salesperson)
-- Overview — societies onboarded, residents verified
+- Dashboard — societies onboarded, residents verified
 - Societies — list, and per-society residents/committee/security/staff
-- Onboard a society — the four-step wizard, ending in a join code
+- Draft — onboardings started but not finalised; resume or discard
+- Services — the shared catalogue residents see on their map
 - Salespeople — superadmin only
+
+The onboarding wizard is reached from Dashboard or Societies rather than
+its own nav item, since it is an action rather than a place.
 
 **Society** (committee)
 - Overview — dues, expenses, funds, open complaints, urgent notice

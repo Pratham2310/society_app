@@ -15,4 +15,9 @@ router.post("/step3",authMiddleware, tenantScope,checkSystemRole("salesperson"),
 router.post("/step4",authMiddleware, tenantScope,checkSystemRole("salesperson"),onboardingController.step4);
 router.post("/finalize",authMiddleware, tenantScope,checkSystemRole("salesperson"),onboardingController.finalize);
 
+//Half-finished onboardings. Without these the console can only resume a
+//draft blindly — it cannot show one exists or throw it away.
+router.get("/drafts",authMiddleware, tenantScope,checkSystemRole("salesperson"),onboardingController.listDrafts);
+router.delete("/drafts/:draftId",authMiddleware, tenantScope,checkSystemRole("salesperson"),onboardingController.discardDraft);
+
 module.exports=router;

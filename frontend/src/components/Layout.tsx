@@ -2,6 +2,10 @@ import { NavLink, Outlet, Navigate, useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
 
 import { useAuth, isPlatform, isSuperadmin, isCommittee, roleLabel } from "../lib/auth";
+import {
+  IconDashboard, IconSocieties, IconDraft, IconServices,
+  IconPeople, IconApprovals, IconNotice, IconComplaint,
+} from "./icons";
 
 // =======================================================
 // SHELL
@@ -14,6 +18,7 @@ import { useAuth, isPlatform, isSuperadmin, isCommittee, roleLabel } from "../li
 interface NavItem {
   to: string;
   label: string;
+  icon: () => JSX.Element;
   show: (u: ReturnType<typeof useAuth>["user"]) => boolean;
 }
 
@@ -21,19 +26,20 @@ const NAV: { section: string; items: NavItem[] }[] = [
   {
     section: "Platform",
     items: [
-      { to: "/", label: "Overview", show: isPlatform },
-      { to: "/societies", label: "Societies", show: isPlatform },
-      { to: "/onboarding", label: "Onboard a society", show: isPlatform },
-      { to: "/salespeople", label: "Salespeople", show: isSuperadmin },
+      { to: "/", label: "Dashboard", icon: IconDashboard, show: isPlatform },
+      { to: "/societies", label: "Societies", icon: IconSocieties, show: isPlatform },
+      { to: "/drafts", label: "Draft", icon: IconDraft, show: isPlatform },
+      { to: "/services", label: "Services", icon: IconServices, show: isPlatform },
+      { to: "/salespeople", label: "Salespeople", icon: IconPeople, show: isSuperadmin },
     ],
   },
   {
     section: "Society",
     items: [
-      { to: "/society", label: "Overview", show: isCommittee },
-      { to: "/residents", label: "Resident approvals", show: isCommittee },
-      { to: "/notices", label: "Notices", show: isCommittee },
-      { to: "/complaints", label: "Complaints", show: isCommittee },
+      { to: "/society", label: "Dashboard", icon: IconDashboard, show: isCommittee },
+      { to: "/residents", label: "Approvals", icon: IconApprovals, show: isCommittee },
+      { to: "/notices", label: "Notices", icon: IconNotice, show: isCommittee },
+      { to: "/complaints", label: "Complaints", icon: IconComplaint, show: isCommittee },
     ],
   },
 ];
@@ -75,7 +81,7 @@ export function Layout() {
 
       <aside
         style={{
-          background: "var(--surface)",
+          background: "var(--nav)",
           borderRight: "1px solid var(--line)",
           padding: "1.25rem 0",
           display: "flex",
@@ -86,63 +92,37 @@ export function Layout() {
           height: "100vh",
         }}
       >
-        <div style={{ padding: "0 1.25rem" }}>
-          <div
-            style={{
-              fontFamily: "Archivo, sans-serif",
-              fontWeight: 700,
-              fontSize: "1.05rem",
-              letterSpacing: "-.01em",
-            }}
-          >
-            Society Console
-          </div>
-          <div className="pill pill-muted" style={{ marginTop: ".45rem" }}>
-            {roleLabel(user)}
+        <div style={{ padding: "0 1.35rem" }}>
+          <div className="brand">Society Ledger</div>
+          <div className="brand-sub">
+            {isPlatform(user) ? "Admin Portal" : "Committee Portal"}
           </div>
         </div>
 
         <nav className="stack" style={{ gap: "1.25rem", flex: 1 }}>
           {sections.map((section) => (
             <div key={section.section} className="stack" style={{ gap: ".15rem" }}>
-              <div
-                style={{
-                  padding: "0 1.25rem .35rem",
-                  fontFamily: "'IBM Plex Mono', monospace",
-                  fontSize: ".65rem",
-                  letterSpacing: ".12em",
-                  textTransform: "uppercase",
-                  color: "var(--muted)",
-                }}
-              >
-                {section.section}
-              </div>
+              <div className="nav-section">{section.section}</div>
               {section.items.map((item) => (
                 <NavLink
                   key={item.to}
                   to={item.to}
                   end={item.to === "/" || item.to === "/society"}
-                  style={({ isActive }) => ({
-                    padding: ".5rem 1.25rem",
-                    fontSize: ".94rem",
-                    fontWeight: isActive ? 600 : 400,
-                    color: isActive ? "var(--accent)" : "var(--ink-soft)",
-                    background: isActive ? "var(--accent-tint)" : "transparent",
-                    borderLeft: `2px solid ${isActive ? "var(--accent)" : "transparent"}`,
-                    textDecoration: "none",
-                  })}
+                  className={({ isActive }) =>
+                    `nav-item${isActive ? " is-active" : ""}`}
                 >
-                  {item.label}
+                  <item.icon />
+                  <span>{item.label}</span>
                 </NavLink>
               ))}
             </div>
           ))}
         </nav>
 
-        <div style={{ padding: "0 1.25rem", borderTop: "1px solid var(--line)", paddingTop: "1rem" }}>
+        <div style={{ padding: "1rem 1.35rem 0", borderTop: "1px solid var(--line-strong)" }}>
           <div style={{ fontSize: ".9rem", fontWeight: 600 }}>{user.name}</div>
-          <div style={{ fontSize: ".82rem", color: "var(--muted)", marginBottom: ".6rem" }}>
-            {user.email}
+          <div style={{ fontSize: ".8rem", color: "var(--muted)", marginBottom: ".55rem" }}>
+            {roleLabel(user)}
           </div>
           <button className="btn btn-ghost btn-sm" onClick={signOut}>Sign out</button>
         </div>

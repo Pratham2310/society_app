@@ -51,3 +51,23 @@ exports.finalize=async(req,res)=>{
         res.status(error.statusCode || 500).json({message:error.message});
     }
 };
+
+// LIST DRAFTS
+exports.listDrafts = async (req, res, next) => {
+  try {
+    const drafts = await onboardingService.listDrafts(req.user);
+    res.json({ message: "Drafts fetched successfully", data: drafts });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// DISCARD A DRAFT
+exports.discardDraft = async (req, res, next) => {
+  try {
+    await onboardingService.discardDraft(req.params.draftId, req.user);
+    res.json({ message: "Draft discarded", data: null });
+  } catch (err) {
+    next(err);
+  }
+};

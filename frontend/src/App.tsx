@@ -9,6 +9,8 @@ import { Login } from "./pages/Login";
 import { PlatformOverview } from "./pages/PlatformOverview";
 import { Societies, SocietyDetail } from "./pages/Societies";
 import { Onboarding } from "./pages/Onboarding";
+import { Drafts } from "./pages/Drafts";
+import { Services } from "./pages/Services";
 import { Salespeople } from "./pages/Salespeople";
 import { SocietyOverview } from "./pages/SocietyOverview";
 import { Residents } from "./pages/Residents";
@@ -54,6 +56,8 @@ export function App() {
               <Route path="societies" element={<Societies />} />
               <Route path="societies/:societyId" element={<SocietyDetail />} />
               <Route path="onboarding" element={<Onboarding />} />
+              <Route path="drafts" element={<Drafts />} />
+              <Route path="services" element={<Services />} />
               <Route path="salespeople" element={<Salespeople />} />
 
               {/* Society */}
