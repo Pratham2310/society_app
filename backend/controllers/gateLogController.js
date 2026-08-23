@@ -1,6 +1,6 @@
 const gateLogService = require("../services/gateLogService");
-const catchAsync = require("../utils/catchAsync");
-const sendResponse = require("../utils/sendResponse");
+const catchAsync = require("../utils/asyncHandler");
+const { sendResponse } = require("../utils/responseHelper");
 
 
 // =======================================================

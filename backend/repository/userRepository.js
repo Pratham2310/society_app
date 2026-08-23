@@ -33,7 +33,7 @@ class UserRepository {
   async countVerifiedMembers(userId) {
     return User.countDocuments({
       createdBy: userId,              // 🔥 important
-      societyrole: "member",          // correct field
+      societyRole: "member",          // correct field
       isVerified: true
     });
   };
@@ -58,7 +58,7 @@ class UserRepository {
   {
     return User.find({
       societyId,
-      societyrole:"security",
+      societyRole:"security",
     }).select("name isVerified createdAt");
   }
 
@@ -66,7 +66,7 @@ class UserRepository {
   {
     return User.find({
       societyId,
-      societyrole:"staff"
+      societyRole:"staff"
     }).select("name staffCategory flatNumber entryTime")
     .sort({createdAt:-1})
     .limit(limit);
@@ -77,7 +77,7 @@ class UserRepository {
     const skip=(page-1)*limit;
     let filter={
       societyId,
-      societyrole:"staff"
+      societyRole:"staff"
     };
 
     if(search)
@@ -107,10 +107,10 @@ class UserRepository {
   //   console.log("👉 Repo societyId:", societyId);
   //   return User.find({
   //     societyId: new mongoose.Types.ObjectId(societyId),
-  //     soceityrole:{
-  //       $in:["secretary","chairman","treasurer","comitee-member"]
+  //     societyRole:{
+  //       $in:["secretary","chairman","treasurer","committee_member"]
   //     }
-  //   }).select("name societyrole");
+  //   }).select("name societyRole");
   // }
   async getLeadershipBySociety(societyId) {
 
@@ -118,10 +118,10 @@ class UserRepository {
 
   const result = await User.find({
     societyId: societyId,
-    societyrole: {
-      $in: ["secretary", "chairman", "treasurer", "comitee-member"]
+    societyRole: {
+      $in: ["secretary", "chairman", "treasurer", "committee_member"]
     }
-  }).select("name societyrole");
+  }).select("name societyRole");
 
   
 
@@ -129,4 +129,17 @@ class UserRepository {
 }
 }
 
-module.exports = new UserRepository();
+// The five exports.* helpers above were being discarded: assigning to
+// module.exports replaces the object they were attached to, so
+// findByEmail, findByPhone, findById, createUser and getUsers all
+// resolved to undefined. That is why creating a salesperson failed with
+// "userRepository.findByEmail is not a function".
+//
+// Merging keeps both shapes working for existing callers.
+module.exports = Object.assign(new UserRepository(), {
+  findByEmail: exports.findByEmail,
+  findByPhone: exports.findByPhone,
+  findById: exports.findById,
+  createUser: exports.createUser,
+  getUsers: exports.getUsers,
+});

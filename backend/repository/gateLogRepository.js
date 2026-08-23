@@ -1,4 +1,4 @@
-const gateLog=require("../models/GateLog");
+const GateLog=require("../models/GateLog");
 const GuestPass = require("../models/GuestPass");
 
 //==============================
@@ -6,7 +6,7 @@ const GuestPass = require("../models/GuestPass");
 //==============================
 
 exports.create=(data,session=null)=>{
-  return gateLog.create([data],{session}).then((docs)=>docs[0]);
+  return GateLog.create([data],{session}).then((docs)=>docs[0]);
 };
 
 
@@ -20,7 +20,7 @@ exports.findById=(
   id,
   societyId
 )=>{
-  return gateLog.findOne({
+  return GateLog.findOne({
     _id:id,
     societyId,
   }).populate("guestPassId")
@@ -46,13 +46,13 @@ exports.findById=(
 //find by guest pass
 
 exports.findByGuestPass=(societyId,guestPassId)=>{
-  return gateLog.find({ societyId, guestPassId }).sort({ scanTime: -1 });
+  return GateLog.find({ societyId, guestPassId }).sort({ scanTime: -1 });
 };
 
 //find by resident
 
 exports.findByResident=(societyId,residentId)=>{
-  return gateLog.find({
+  return GateLog.find({
     societyId,
     residentId
   })
@@ -62,7 +62,7 @@ exports.findByResident=(societyId,residentId)=>{
 //find by guard
 
 exports.findByGuard=(societyId,guardId)=>{
-  return gateLog.find({
+  return GateLog.find({
     societyId,
     guardId,
   }).sort({scanTime:-1});
@@ -71,15 +71,15 @@ exports.findByGuard=(societyId,guardId)=>{
 
 //find by flat
 exports.findByFlat=(societyId,flatId)=>{
-  return gateLog.find({
+  return GateLog.find({
     societyId,
     flatId,
   }).sort({scanTime:-1});
 };
 
 //find by wing
-exports.findByWing=(soietyId,wingId)=>{
-  return gateLog.find({
+exports.findByWing=(societyId,wingId)=>{
+  return GateLog.find({
     societyId,
     wingId,
   }).sort({scanTime:-1});
@@ -92,7 +92,7 @@ exports.findBySociety=(societyId,options={})=>{
     page=1,
     limit=10,
   }=options;
-  return gateLog.find({
+  return GateLog.find({
     societyId,
   }).sort({scanTime:-1})
   .skip((page-1)*limit)
@@ -102,7 +102,7 @@ exports.findBySociety=(societyId,options={})=>{
 
 //find latest scan
 exports.findLatestScan=(societyId,guestPassId)=>{
-  return gateLog.findOne({
+  return GateLog.findOne({
     societyId,
     guestPassId,
   }).sort({scanTIme:-1});
@@ -111,7 +111,7 @@ exports.findLatestScan=(societyId,guestPassId)=>{
 
 //find latest entry
 exports.findLatestEntry=(societyId,guestPassId)=>{
-  return gateLog.findOne({
+  return GateLog.findOne({
     societyId,
     guestPassId,
     scanType:"entry",
@@ -121,7 +121,7 @@ exports.findLatestEntry=(societyId,guestPassId)=>{
 
 //find latest exit
 exports.findLatestExit=(societyId,guestPassId)=>{
-  return gateLog.findOne({
+  return GateLog.findOne({
     societyId,
     guestPassId,
     scanType:"exit"
@@ -135,7 +135,7 @@ exports.findLatestExit=(societyId,guestPassId)=>{
 
 //search visitor
 exports.searchVisitor=(societyId,keyword)=>{
-  return gateLog.find({
+  return GateLog.find({
     societyId,
     $or:[
       {visitorName:{
@@ -165,7 +165,7 @@ exports.searchVisitor=(societyId,keyword)=>{
 
 
 exports.existsById=(societyId,id)=>{
-  return gateLog.exists({
+  return GateLog.exists({
     _id:id,
     societyId,
   });
@@ -182,7 +182,7 @@ exports.findByScanType=(societyId,scanType,options={})=>{
     page=1,
     limit=10,
   }=options;
-  return gateLog.find({
+  return GateLog.find({
     societyId,
     scanType,
   }).sort({scanTime:-1})
@@ -200,7 +200,7 @@ exports.findByVisitorType=(societyId,visitorId,options={})=>{
     page=1,
     limit=10,
   }=options;
-  return gateLog.find({
+  return GateLog.find({
     societyId,
     visitorId,
 })
@@ -224,7 +224,7 @@ exports.findByStatus=(
     page=1,
     limit=10,
   }=options;
-  return gateLog.find({
+  return GateLog.find({
     societyId,
     status,
   }).sort({scanTime:-1})
@@ -249,7 +249,7 @@ exports.findByVerificationMethod = (
     limit = 20,
   } = options;
 
-  return gateLog.find({
+  return GateLog.find({
     societyId,
     verificationMethod,
   })
@@ -271,7 +271,7 @@ exports.findBetweenDates = (
   endDate
 ) => {
 
-  return gateLog.find({
+  return GateLog.find({
 
     societyId,
 
@@ -300,7 +300,7 @@ exports.findTodayLogs = (
   endOfDay
 ) => {
 
-  return gateLog.find({
+  return GateLog.find({
 
     societyId,
 
@@ -326,7 +326,7 @@ exports.findCurrentVisitors = (
   societyId
 ) => {
 
-  return gateLog.find({
+  return GateLog.find({
 
     societyId,
 
@@ -349,7 +349,7 @@ exports.findResidentHistory = (
   residentId
 ) => {
 
-  return gateLog.find({
+  return GateLog.find({
 
     societyId,
 
@@ -370,7 +370,7 @@ exports.findGuardHistory = (
   guardId
 ) => {
 
-  return gateLog.find({
+  return GateLog.find({
 
     societyId,
 
@@ -391,7 +391,7 @@ exports.findFlatHistory = (
   flatId
 ) => {
 
-  return gateLog.find({
+  return GateLog.find({
 
     societyId,
 
@@ -412,7 +412,7 @@ exports.findWingHistory = (
   wingId
 ) => {
 
-  return gateLog.find({
+  return GateLog.find({
 
     societyId,
 
@@ -433,7 +433,7 @@ exports.findGuestPassHistory = (
   guestPassId
 ) => {
 
-  return gateLog.find({
+  return GateLog.find({
 
     societyId,
 
@@ -457,7 +457,7 @@ exports.updateRemarks = (
   remarks
 ) => {
 
-  return gateLog.findOneAndUpdate(
+  return GateLog.findOneAndUpdate(
     {
       _id: id,
       societyId,
@@ -484,7 +484,7 @@ exports.updateGuardNotes = (
   guardNotes
 ) => {
 
-  return gateLog.findOneAndUpdate(
+  return GateLog.findOneAndUpdate(
     {
       _id: id,
       societyId,
@@ -543,7 +543,7 @@ exports.updateRejectionReason = (
   rejectionReason
 ) => {
 
-  return gateLog.findOneAndUpdate(
+  return GateLog.findOneAndUpdate(
     {
       _id: id,
       societyId,
@@ -570,7 +570,7 @@ exports.updateMetadata = (
   metadata
 ) => {
 
-  return gateLog.findOneAndUpdate(
+  return GateLog.findOneAndUpdate(
     {
       _id: id,
       societyId,
@@ -594,13 +594,13 @@ exports.updateMetadata = (
 
 //count total logs
 exports.countTotla=(societyId)=>{
-  return gateLog.countDocuments(societyId,);
+  return GateLog.countDocuments(societyId,);
 };
 
 
 //count by visitor type
 exports.countByVisitor=(societyId,visitorType)=>{
-  return gateLog.countDocuments({
+  return GateLog.countDocuments({
     societyId,
     visitorType,
   });
@@ -609,7 +609,7 @@ exports.countByVisitor=(societyId,visitorType)=>{
 //coumt by scan type
 
 exports.countByScanType=(societyId,scanType)=>{
-  return gateLog.countDocuments({
+  return GateLog.countDocuments({
       societyId,
       scanType
   });
@@ -619,7 +619,7 @@ exports.countByScanType=(societyId,scanType)=>{
 //count by status
 
 exports.countByStatus=(societyId,status)=>{
-  return gateLog.countDocuments({
+  return GateLog.countDocuments({
     societyId,
     status
   });
@@ -629,7 +629,7 @@ exports.countByStatus=(societyId,status)=>{
 //count by verification method
 
 exports.countByVerifcationMethod=(societyId,verificationMethod)=>{
-  return gateLog.countDocuments({
+  return GateLog.countDocuments({
     societyId,
     verificationMethod,
   });
@@ -638,8 +638,8 @@ exports.countByVerifcationMethod=(societyId,verificationMethod)=>{
 
 //count todays entry
 
-exports.countTodaysEntry=(societyId,startOfDay,endOdDay)=>{
-  return gateLog.countDocuments({
+exports.countTodaysEntry=(societyId,startOfDay,endOfDay)=>{
+  return GateLog.countDocuments({
     societyId,
     scanType:"entry",
     scanTime:{
@@ -653,7 +653,7 @@ exports.countTodaysEntry=(societyId,startOfDay,endOdDay)=>{
 //count todays exits
 
 exports.countTodaysExits=(societyId,startOfDay,endOfDay)=>{
-  return gateLof.countDocuments({
+  return GateLog.countDocuments({
     societyId,
     scanType:"exit",
     scanTime:{
@@ -667,7 +667,7 @@ exports.countTodaysExits=(societyId,startOfDay,endOfDay)=>{
 //count rejected
 
 exports.countRejected=(societyId,startOfDay,endOfDay)=>{
-  return gateLog.countDocuments({
+  return GateLog.countDocuments({
     societyId,
     status:"rejected",
     scanTime:{

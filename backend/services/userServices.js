@@ -2,6 +2,7 @@ const User = require("../models/User");
 const Flat = require("../models/Flats");
 const AppError = require("../utils/appError");
 const bcrypt = require("bcrypt");
+const { withTransaction } = require("../utils/transactionHelper");
 
 // 🔥 REGISTER FULL USER
 exports.registerFull = async (data) => {
@@ -27,37 +28,56 @@ exports.registerFull = async (data) => {
     throw new AppError("User not verified with OTP", 400);
   }
 
-  const flat = await Flat.findOne({ wingId, flatNumber });
+  const flat = await Flat.findOne({ societyId, wingId, flatNumber });
 
   if (!flat) throw new AppError("Flat not found", 404);
   if (flat.isOccupied) throw new AppError("Flat already occupied", 400);
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  existingUser.name = name;
-  existingUser.email = email;
-  existingUser.password = hashedPassword;
-  existingUser.phone = phone;
-  existingUser.societyId = societyId;
-  existingUser.wingId = wingId;
-  existingUser.flatNumber = flatNumber;
-  existingUser.occupancyType = occupancyType;
-  existingUser.livingType = livingType;
-  existingUser.familySize = familySize;
-  existingUser.vehicles = vehicles;
-  existingUser.agreedToTerms = agreedToTerms;
-  existingUser.consentAlerts = consentAlerts;
+  //Claiming the flat and writing the user must not come apart: a
+  //failure between them would leave a registered resident whose flat
+  //still shows as free, and the next person could take it.
+  return withTransaction(async (session) => {
 
-  existingUser.status = "pending";
-  existingUser.isVerified = false;
-  existingUser.isOtpVerified = false;
+    //Atomic claim. A read-then-write would let two residents
+    //registering for the same flat at the same moment both see
+    //isOccupied:false and both succeed. Matching on isOccupied:false
+    //inside the update means exactly one of them wins.
+    const claimed = await Flat.findOneAndUpdate(
+      { _id: flat._id, isOccupied: false },
+      { $set: { isOccupied: true } },
+      { new: true, session }
+    );
 
-  await existingUser.save();
+    if (!claimed) {
+      throw new AppError("Flat already occupied", 409);
+    }
 
-  flat.isOccupied = true;
-  await flat.save();
+    existingUser.name = name;
+    existingUser.email = email;
+    existingUser.password = hashedPassword;
+    existingUser.phone = phone;
+    existingUser.societyId = societyId;
+    existingUser.wingId = wingId;
+    existingUser.flatId = claimed._id;
+    existingUser.flatNumber = flatNumber;
+    existingUser.occupancyType = occupancyType;
+    existingUser.livingType = livingType;
+    existingUser.familySize = familySize;
+    existingUser.vehicles = vehicles;
+    existingUser.agreedToTerms = agreedToTerms;
+    existingUser.consentAlerts = consentAlerts;
 
-  return existingUser;
+    existingUser.status = "pending";
+    existingUser.isVerified = false;
+    existingUser.isOtpVerified = false;
+
+    await existingUser.save({ session });
+
+    return existingUser;
+
+  });
 };
 
 // 🔥 GET PENDING USERS
@@ -73,7 +93,7 @@ exports.updateStatus = async (currUser, userId, status) => {
     throw new AppError("Invalid status", 400);
   }
 
-  if (!["secretary", "chairman"].includes(currUser.societyrole)) {
+  if (!["secretary", "chairman"].includes(currUser.societyRole)) {
     throw new AppError("Not authorized", 403);
   }
 
@@ -111,10 +131,10 @@ exports.getUserByWing = async (societyId, wingId) => {
 };
 
 // 🔥 UPDATE ROLE
-const allowedRoles = ["secretary", "comitee-member", "treasurer", "member"];
+const allowedRoles = ["secretary", "committee_member", "treasurer", "member"];
 
 exports.updateUserRole = async (currUser, targetUserId, newRole) => {
-  if (currUser.societyrole !== "secretary") {
+  if (currUser.societyRole !== "secretary") {
     throw new AppError("Only secretary can update roles", 403);
   }
 
@@ -132,25 +152,25 @@ exports.updateUserRole = async (currUser, targetUserId, newRole) => {
   if (newRole === "secretary") {
     const oldSecretary = await User.findOne({
       societyId: currUser.societyId,
-      societyrole: "secretary"
+      societyRole: "secretary"
     });
 
     if (oldSecretary) {
-      oldSecretary.societyrole = "member";
+      oldSecretary.societyRole = "member";
       await oldSecretary.save();
     }
 
-    targetUser.societyrole = "secretary";
+    targetUser.societyRole = "secretary";
     await targetUser.save();
 
     return targetUser;
   }
 
-  if (targetUser.societyrole === newRole) {
+  if (targetUser.societyRole === newRole) {
     throw new AppError("User already has this role", 400);
   }
 
-  targetUser.societyrole = newRole;
+  targetUser.societyRole = newRole;
   await targetUser.save();
 
   return targetUser;

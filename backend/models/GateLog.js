@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const Schema= mongoose.Schema;
 
-const guestLogSchema = new mongoose.Schema({
+const gateLogSchema = new mongoose.Schema({
   // society information
   societyId: {
     type: Schema.Types.ObjectId,
@@ -179,8 +179,8 @@ guardNotes: [
     type:Schema.Types.Mixed,
     default:{},
   },
-},{timestamps:true},
-  {versionKey:false}
+},{timestamps:true,versionKey:false}
+
 );
 
 
@@ -261,6 +261,25 @@ gateLogSchema.index({
   wingId: 1,
   flatId: 1,
 });
+
+// ======================================================
+// Retention
+// ======================================================
+// Gate logs are the fastest-growing collection here and carry 13
+// indexes, so they dictate when storage becomes the binding
+// constraint. Retention is OPT-IN: this index deletes visitor
+// history permanently, and how long a society must keep it is a
+// policy question, not a technical default. Set
+// GATE_LOG_RETENTION_DAYS to enable.
+
+const retentionDays = Number(process.env.GATE_LOG_RETENTION_DAYS || 0);
+
+if (retentionDays > 0) {
+  gateLogSchema.index(
+    { scanTime: 1 },
+    { expireAfterSeconds: retentionDays * 24 * 60 * 60 }
+  );
+}
 
 module.exports = mongoose.model(
   "GateLog",

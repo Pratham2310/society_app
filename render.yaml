@@ -1,0 +1,96 @@
+# =======================================================
+# RENDER DEPLOYMENT
+#
+# The web service plus the scheduled jobs. Jobs run as cron
+# services rather than an in-process timer: an in-process
+# scheduler fires once per instance, so it doubles up the moment
+# the web service scales past one.
+#
+# Secrets are marked sync:false — set them in the Render dashboard,
+# never in this file.
+# =======================================================
+
+services:
+  - type: web
+    name: society-app-api
+    runtime: node
+    plan: starter          # free tier sleeps after 15min; a mobile app cannot wait 50s
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: CLOUDINARY_NAME
+        sync: false
+      - key: CLOUDINARY_KEY
+        sync: false
+      - key: CLOUDINARY_SECRET
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+      # Comma-separated web console origins. The Expo app does not
+      # enforce CORS and does not need to be listed.
+      - key: CORS_ORIGINS
+        sync: false
+      # Unset keeps gate logs forever. Setting it permanently deletes
+      # visitor history older than the window.
+      - key: GATE_LOG_RETENTION_DAYS
+        sync: false
+      - key: MIN_CLIENT_VERSION
+        value: "1.0.0"
+      - key: LATEST_CLIENT_VERSION
+        value: "1.0.0"
+      - key: RELEASE
+        fromService:
+          type: web
+          name: society-app-api
+          property: host
+
+  # Hourly: close out passes and approvals whose window has passed.
+  - type: cron
+    name: society-app-expiry
+    runtime: node
+    plan: starter
+    schedule: "0 * * * *"
+    buildCommand: npm ci
+    startCommand: node backend/scripts/jobs/runJobs.js expirePasses expireVisitorApprovals
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: CLOUDINARY_NAME
+        sync: false
+      - key: CLOUDINARY_KEY
+        sync: false
+      - key: CLOUDINARY_SECRET
+        sync: false
+
+  # Daily: sweep up OTP material and abandoned idempotency keys.
+  - type: cron
+    name: society-app-cleanup
+    runtime: node
+    plan: starter
+    schedule: "30 2 * * *"
+    buildCommand: npm ci
+    startCommand: node backend/scripts/jobs/runJobs.js cleanupOtps pruneIdempotencyKeys
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: CLOUDINARY_NAME
+        sync: false
+      - key: CLOUDINARY_KEY
+        sync: false
+      - key: CLOUDINARY_SECRET
+        sync: false

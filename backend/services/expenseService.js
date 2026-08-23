@@ -20,7 +20,7 @@ exports.getExpense=async(req)=>{
         "secretary",
         "chairman",
         "treasurer",
-        "comitee-member"
+        "committee_member"
     ].includes(req.user.societyRole);
 
     let filter={

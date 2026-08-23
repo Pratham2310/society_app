@@ -10,6 +10,10 @@ const authMiddleware = require(
   "../middleware/authMiddleware"
 );
 
+const tenantScope = require(
+  "../middleware/tenantScope"
+);
+
 const checkApproved = require(
   "../middleware/checkApproved"
 );
@@ -17,6 +21,7 @@ const checkApproved = require(
 
 // protected
 router.use(authMiddleware);
+router.use(tenantScope);
 router.use(checkApproved);
 
 

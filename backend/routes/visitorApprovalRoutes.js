@@ -2,8 +2,11 @@ const express=require("express");
 const router=express.Router();
 const visitorApprovalController=require("../controllers/visitorApprovalController");
 const auth=require("../middleware/authMiddleware");
+const tenantScope =
+  require("../middleware/tenantScope");
 const checkApproved=require("../middleware/checkApproved");
-const authorize=require("../middleware/authorizeRoles");
+const authorize =
+  require("../middleware/requireRole").requireSocietyRole;
 
 
 //=====================================================================
@@ -11,6 +14,7 @@ const authorize=require("../middleware/authorizeRoles");
 //=====================================================================
 
 router.use(auth);
+router.use(tenantScope);
 router.use(checkApproved);
 
 //====================================================================
@@ -18,13 +22,13 @@ router.use(checkApproved);
 //====================================================================
 
 //Request Approval
-router.post("/",authorize("guard"),visitorApprovalController.requestApproval);
+router.post("/",authorize("security"),visitorApprovalController.requestApproval);
 
 //cancel approval request
-router.patch("/:approvalId/cancel",authorize("guard"),visitorApprovalController.cancelRequest);
+router.patch("/:approvalId/cancel",authorize("security"),visitorApprovalController.cancelRequest);
 
 //guard pending requests
-router.get("/pending",authorize("guard"),visitorApprovalController.getGuardPendingRequests);
+router.get("/pending",authorize("security"),visitorApprovalController.getGuardPendingRequests);
 
 
 
@@ -33,13 +37,18 @@ router.get("/pending",authorize("guard"),visitorApprovalController.getGuardPendi
 //=====================================================================
 
 //Resident pending requests
-router.get("/resident/pending",authorize("member","chairman"),visitorApprovalController.getResidentPendingRequests);
+router.get("/resident/pending",authorize("member","chairman","secretary","treasurer","committee_member"),visitorApprovalController.getResidentPendingRequests);
 
 //get approve request
-router.patch("/:approvalId/approve",authorize("member","chairman"),visitorApprovalController.approveRequest);
+//Every resident can answer for their OWN flat — the service checks
+//ownership. Restricting this to member+chairman locked a treasurer,
+//secretary or committee member out of approving their own visitor.
+//"security" is deliberately absent: a guard raises the request, the
+//resident answers it.
+router.patch("/:approvalId/approve",authorize("member","chairman","secretary","treasurer","committee_member"),visitorApprovalController.approveRequest);
 
 //reject request
-router.patch("/:approvalId/reject",authorize("member","chairman"),visitorApprovalController.rejectRequest);
+router.patch("/:approvalId/reject",authorize("member","chairman","secretary","treasurer","committee_member"),visitorApprovalController.rejectRequest);
 
 
 
@@ -47,10 +56,11 @@ router.patch("/:approvalId/reject",authorize("member","chairman"),visitorApprova
 //Comitee Routes
 //========================================================================
 
-//get Approval by ID
-router.get("/:approvalId",authorize("chairman","secretary","comitee-member"),visitorApprovalCOntroller.getApprovedById);
-
 //Approval statistics
-router.get("statistics",authorize("chairman","secretary","comitee-member"),visitorApprovalCOntroller.getApprovalStatistics);
+//NOTE: literal path must stay above "/:approvalId".
+router.get("/statistics",authorize("chairman","secretary","committee_member"),visitorApprovalController.getApprovalStatistics);
+
+//get Approval by ID
+router.get("/:approvalId",authorize("chairman","secretary","committee_member"),visitorApprovalController.getApprovalById);
 
 module.exports=router;

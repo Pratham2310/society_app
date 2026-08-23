@@ -1,8 +1,8 @@
 const visitorApprovalService = require("../services/visitorApprovalService");
 
-const catchAsync = require("../utils/catchAsync");
+const catchAsync = require("../utils/asyncHandler");
 
-const sendResponse = require("../utils/sendResponse");
+const { sendResponse } = require("../utils/responseHelper");
 
 
 

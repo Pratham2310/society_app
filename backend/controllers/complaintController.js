@@ -17,13 +17,17 @@ exports.createComplaint = async (req, res) => {
 };
 
 exports.getComplaints = async (req, res) => {
-  try {
-    const data = await complaintService.getComplaints(req);
-    res.json({ success: true, data });
-
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
+    try {
+        const { items, meta } = await complaintService.getComplaints(req);
+        res.status(200).json({
+            success: true,
+            message: "Complaints fetched successfully",
+            data: items,
+            meta,
+        });
+    } catch (err) {
+        res.status(err.statusCode || 500).json({ success: false, message: err.message });
+    }
 };
 
 exports.getComplaintById = async (req, res) => {

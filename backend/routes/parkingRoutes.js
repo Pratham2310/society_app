@@ -5,11 +5,14 @@ const router = express.Router();
 const parkingController = require("../controllers/parkingController");
 
 const authMiddleware = require("../middleware/authMiddleware");
+const tenantScope =
+  require("../middleware/tenantScope");
 const checkApproved = require("../middleware/checkApproved");
 
 
 // 🔥 PROTECTED ROUTES
 router.use(authMiddleware);
+router.use(tenantScope);
 router.use(checkApproved);
 
 

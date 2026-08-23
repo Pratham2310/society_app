@@ -1,4 +1,5 @@
 const userServices = require("../services/userServices");
+const audit = require("../services/auditService");
 
 // REGISTER
 exports.registerFull = async (req, res) => {
@@ -35,6 +36,13 @@ exports.updateStatus = async (req, res) => {
   const userObj = user.toObject();
   delete userObj.password;
 
+  await audit.record(req.user, audit.ACTIONS.USER_STATUS_CHANGED, {
+    targetType: "User",
+    targetId: req.params.userId,
+    metadata: { status: req.body.status },
+    req,
+  });
+
   res.json({
     success: true,
     message: `User ${req.body.status} successfully`,
@@ -69,6 +77,13 @@ exports.updateUserRole = async (req, res) => {
 
   const userObj = user.toObject();
   delete userObj.password;
+
+  await audit.record(req.user, audit.ACTIONS.USER_ROLE_CHANGED, {
+    targetType: "User",
+    targetId: req.params.userId,
+    metadata: { newRole: req.body.role },
+    req,
+  });
 
   res.json({
     success: true,

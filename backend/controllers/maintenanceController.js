@@ -40,7 +40,7 @@ exports.getMyBills = async (req, res) => {
     });
 
   } catch (err) {
-    res.status(500).json({
+    res.status(err.statusCode || 500).json({
       success: false,
       message: err.message
     });
@@ -59,7 +59,7 @@ exports.getAllBills = async (req, res) => {
     });
 
   } catch (err) {
-    res.status(500).json({
+    res.status(err.statusCode || 500).json({
       success: false,
       message: err.message
     });
@@ -97,7 +97,7 @@ exports.markPending = async (req, res) => {
     });
 
   } catch (err) {
-    res.status(500).json({
+    res.status(err.statusCode || 500).json({
       success: false,
       message: err.message
     });
@@ -115,7 +115,7 @@ exports.sendReminder = async (req, res) => {
     });
 
   } catch (err) {
-    res.status(500).json({
+    res.status(err.statusCode || 500).json({
       success: false,
       message: err.message
     });

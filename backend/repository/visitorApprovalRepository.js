@@ -1,235 +1,95 @@
-const mongoose = require("mongoose");
+const VisitorApproval = require("../models/VisitorApproval");
 
-const visitorApprovalSchema = new mongoose.Schema(
-  {
-
-    // ======================================================
-    // Society Information
-    // ======================================================
-
-    societyId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Society",
-      required: true,
-      index: true,
-    },
-
-    residentId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-      index: true,
-    },
-
-    flatId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Flat",
-      required: true,
-      index: true,
-    },
-
-    wingId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Wing",
-      required: true,
-      index: true,
-    },
-
-    guardId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-
-    // ======================================================
-    // Visitor Information
-    // ======================================================
-
-    visitorName: {
-      type: String,
-      required: true,
-      trim: true,
-      maxlength: 100,
-    },
-
-    visitorPhone: {
-      type: String,
-      required: true,
-      trim: true,
-      match: [/^[0-9]{10}$/, "Invalid phone number"],
-    },
-
-    visitorPhoto: {
-      type: String,
-      default: null,
-      trim: true,
-    },
-
-    vehicleNumber: {
-      type: String,
-      default: null,
-      trim: true,
-      uppercase: true,
-    },
-
-    purpose: {
-      type: String,
-      enum: [
-        "family",
-        "friend",
-        "delivery",
-        "maintenance",
-        "business",
-        "other",
-      ],
-      default: "other",
-    },
-
-    numberOfVisitors: {
-      type: Number,
-      default: 1,
-      min: 1,
-      max: 20,
-    },
-
-    // ======================================================
-    // Approval Information
-    // ======================================================
-
-    approvalStatus: {
-      type: String,
-      enum: [
-        "pending",
-        "approved",
-        "rejected",
-        "expired",
-        "cancelled",
-      ],
-      default: "pending",
-      index: true,
-    },
-
-    respondedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      default: null,
-    },
-
-    requestedAt: {
-      type: Date,
-      default: Date.now,
-    },
-
-    respondedAt: {
-      type: Date,
-      default: null,
-    },
-
-    rejectionReason: {
-      type: String,
-      trim: true,
-      maxlength: 300,
-      default: null,
-    },
-
-    expiresAt: {
-      type: Date,
-      required: true,
-      index: true,
-    },
-
-    // ======================================================
-    // Guest Pass Information
-    // ======================================================
-
-    guestPassId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "GuestPass",
-      default: null,
-      index: true,
-    },
-
-    // ======================================================
-    // Notification Information
-    // ======================================================
-
-    notificationSentAt: {
-      type: Date,
-      default: null,
-    },
-
-    // ======================================================
-    // Future Metadata
-    // ======================================================
-
-    metadata: {
-      type: mongoose.Schema.Types.Mixed,
-      default: {},
-    },
-
-    // ======================================================
-    // Audit Information
-    // ======================================================
-
-    createdBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-
-  },
-  {
-    timestamps: true,
-    versionKey: false,
-  }
-);
-
+// =======================================================
+// VISITOR APPROVAL REPOSITORY
 //
-// ======================================================
-// Production Indexes
-// ======================================================
+// This file previously opened with a verbatim copy of the
+// VisitorApproval schema and ended with
+// `module.exports = mongoose.model(...)`, which replaced the
+// exports object. The service therefore imported a Mongoose
+// model rather than this repository: calls to findById and
+// create silently resolved to model statics with different
+// semantics (no societyId scoping, no session), and every other
+// method was undefined.
+// =======================================================
 
-// Resident Pending Requests
-visitorApprovalSchema.index({
-  societyId: 1,
-  residentId: 1,
-  approvalStatus: 1,
+
+// =======================================================
+// PRIVATE HELPERS
+// =======================================================
+
+// Every lookup is scoped by societyId as well as _id, so an id
+// from another society simply does not match.
+const buildFilter = (id, societyId) => ({
+  _id: id,
+  societyId,
 });
 
-// Guard Pending Requests
-visitorApprovalSchema.index({
-  societyId: 1,
-  guardId: 1,
-  approvalStatus: 1,
+// Return the updated document, and enlist in a transaction when
+// the caller is running one.
+const applyUpdateOptions = (session = null) => ({
+  new: true,
+  ...(session ? { session } : {}),
 });
 
-// Expiry Scheduler
-visitorApprovalSchema.index({
-  approvalStatus: 1,
-  expiresAt: 1,
-});
 
-// Flat History
-visitorApprovalSchema.index({
-  societyId: 1,
-  flatId: 1,
-});
+// =======================================================
+// CREATE
+// =======================================================
 
-// Timeline
-visitorApprovalSchema.index({
-  societyId: 1,
-  createdAt: -1,
-});
+exports.create = (data, session = null) => {
 
-// Guest Pass Link
-visitorApprovalSchema.index({
-  guestPassId: 1,
-});
+  if (session) {
+    return VisitorApproval.create([data], { session })
+      .then((docs) => docs[0]);
+  }
 
-module.exports = mongoose.model(
-  "VisitorApproval",
-  visitorApprovalSchema
-);
+  return VisitorApproval.create(data);
+
+};
+
+
+// =======================================================
+// READS
+// =======================================================
+
+exports.findById = (id, societyId) => {
+
+  return VisitorApproval.findOne(
+    buildFilter(id, societyId)
+  );
+
+};
+
+exports.findResidentPending = (residentId, societyId, options = {}) => {
+
+  const { page = 1, limit = 20 } = options;
+
+  return VisitorApproval.find({
+    residentId,
+    societyId,
+    approvalStatus: "pending",
+  })
+    .sort({ createdAt: -1 })
+    .skip((Number(page) - 1) * Number(limit))
+    .limit(Math.min(Number(limit), 100));
+
+};
+
+exports.findGuardPending = (guardId, societyId, options = {}) => {
+
+  const { page = 1, limit = 20 } = options;
+
+  return VisitorApproval.find({
+    guardId,
+    societyId,
+    approvalStatus: "pending",
+  })
+    .sort({ createdAt: -1 })
+    .skip((Number(page) - 1) * Number(limit))
+    .limit(Math.min(Number(limit), 100));
+
+};
 
 
 // =======================================================

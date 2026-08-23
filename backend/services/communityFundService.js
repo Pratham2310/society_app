@@ -1,6 +1,7 @@
 const repo=require("../repository/communityFundRepository");
 const mongoose=require("mongoose");
 const AppError=require("../utils/appError");
+const {withTransaction}=require("../utils/transactionHelper");
 
 
 //create fund(secretary)
@@ -37,14 +38,23 @@ exports.approveContribution=async(id,status,req)=>{
     if(!contribution) throw new AppError("contribution not found",404);
 
     if(contribution.status !== "pending")throw new AppError("contribution already processed",400);
-    contribution.status=status;
 
-    //if approved update fund
-    if(status==="approved"){
-        const fund=await repo.findById(contribution.fundId);
-        fund.collectedAmount+=contribution.amount;
-        await fund.save();
-    }
-    await contribution.save();
-    return contribution;
+    //findContributionById returns a lean object, so the previous
+    //contribution.save() threw. Persist through the repository, and
+    //keep the fund total and the contribution status in one
+    //transaction so an approved contribution is never counted twice
+    //or lost entirely.
+    return withTransaction(async(session)=>{
+
+        if(status==="approved"){
+            await repo.incrementCollected(
+                contribution.fundId,
+                contribution.amount,
+                session
+            );
+        }
+
+        return repo.updateContribution(id,{status},session);
+
+    });
 };

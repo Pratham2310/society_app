@@ -1,51 +1,37 @@
 const noticeServices=require("../services/noticeService");
+const asyncHandler=require("../utils/asyncHandler");
+const {sendResponse}=require("../utils/responseHelper");
 
-exports.createNotice=async (req,res)=>{
-    try{
-        // console.log("create notice hit");
-        // console.log("BODY",req.body);
-        // console.log("USER",req.user);
-        const data=await noticeServices.createNotice(req);
-        res.json({success:true,data});
-    }catch(err){
-        // console.error("FULL ERROR",err);
-        // console.error("ERROR MESSAGE",err.message);
-        res.status(500).json({message:err.message});
-    }
-};
+//No local try/catch: asyncHandler forwards to the global error
+//handler, which preserves AppError status codes. Catching here and
+//returning 500 turned every 404 and 403 into "Internal Server Error".
 
-exports.getNotices=async (req,res)=>{
-    try{
-        const data=await noticeServices.getNotices(req);
-        res.json({success:true,data});
-    }catch(err){
-        res.status(500).json({message:err.message});
-    }
-};
+exports.createNotice=asyncHandler(async (req,res)=>{
+    const data=await noticeServices.createNotice(req);
+    sendResponse(res,201,true,"Notice created successfully",data);
+});
 
-exports.getNoticeById=async (req,res)=>{
-    try{
-        const data=await noticeServices.getNoticeById(req.params.id);
-        res.json({success:true,data});
-    }catch(err){
-        res.status(500).json({message:err.message});
-    }
-};
+exports.getNotices=asyncHandler(async (req,res)=>{
+    const {items,meta}=await noticeServices.getNotices(req);
+    res.status(200).json({
+        success:true,
+        message:"Notices fetched successfully",
+        data:items,
+        meta,
+    });
+});
 
-exports.updateNotice=async (req,res)=>{
-    try{
-        const data=await noticeServices.updateNotice(req.params.id, req.body);
-        res.json({success:true,data});
-    }catch(err){
-        res.status(500).json({message:err.message});
-    }
-};
+exports.getNoticeById=asyncHandler(async (req,res)=>{
+    const data=await noticeServices.getNoticeById(req.params.id);
+    sendResponse(res,200,true,"Notice fetched successfully",data);
+});
 
-exports.deleteNotice=async (req,res)=>{
-    try{
-        await noticeServices.deleteNotice(req.params.id);
-        res.json({success:true,message:"Notice deleted successfully"});
-    }catch(err){
-        res.status(500).json({message:err.message});
-    }
-};
+exports.updateNotice=asyncHandler(async (req,res)=>{
+    const data=await noticeServices.updateNotice(req.params.id, req.body);
+    sendResponse(res,200,true,"Notice updated successfully",data);
+});
+
+exports.deleteNotice=asyncHandler(async (req,res)=>{
+    await noticeServices.deleteNotice(req.params.id);
+    sendResponse(res,200,true,"Notice deleted successfully");
+});

@@ -6,7 +6,7 @@ exports.step1=async(req,res)=>{
         const draft= await onboardingService.step1(req.body,req.user);
         res.status(200).json({message:"step 1 saved successfully",data:draft});
     } catch (error) {
-        res.status(500).json({message:error.message});
+        res.status(error.statusCode || 500).json({message:error.message});
     }
 };
 
@@ -17,7 +17,7 @@ exports.step2=async(req,res)=>{
         const draft=await onboardingService.step2(req.body,req.user);
         res.status(200).json({message:"step 2 saved successfully",data:draft});
     } catch (error) {
-        res.status(500).json({message:error.message});
+        res.status(error.statusCode || 500).json({message:error.message});
     }
 }
 
@@ -28,7 +28,7 @@ exports.step3=async(req,res)=>{
         res.status(200).json({message:"step 3 saved successfully",data:draft});
     }catch(error)
     {
-        res.status(500).json({message:error.message});  
+        res.status(error.statusCode || 500).json({message:error.message});  
     }
 };
 
@@ -38,7 +38,7 @@ exports.step4=async(req,res)=>{
         const draft = await onboardingService.step4(req.body,req.user);
         res.status(200).json({message:"step 4 saved successfully",data:draft});
     } catch (error) {
-        res.status(500).json({message:error.message});
+        res.status(error.statusCode || 500).json({message:error.message});
     }
 };
 
@@ -48,6 +48,26 @@ exports.finalize=async(req,res)=>{
         res.status(200).json({message:"Onboarding finalized successfully",data:result});
     }catch(error)
     {
-        res.status(500).json({message:error.message});
+        res.status(error.statusCode || 500).json({message:error.message});
     }
+};
+
+// LIST DRAFTS
+exports.listDrafts = async (req, res, next) => {
+  try {
+    const drafts = await onboardingService.listDrafts(req.user);
+    res.json({ message: "Drafts fetched successfully", data: drafts });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// DISCARD A DRAFT
+exports.discardDraft = async (req, res, next) => {
+  try {
+    await onboardingService.discardDraft(req.params.draftId, req.user);
+    res.json({ message: "Draft discarded", data: null });
+  } catch (err) {
+    next(err);
+  }
 };

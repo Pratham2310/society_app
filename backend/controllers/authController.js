@@ -1,36 +1,30 @@
 const authService = require("../services/authService");
 const otpService = require("../services/otpServices");
+const { sendResponse } = require("../utils/responseHelper");
 
-// REGISTER (keep only for admin/internal use)
+// REGISTER
 exports.register = async (req, res) => {
 
-    const { name, email, password, societyId } = req.body;
+    // registerUser expects a single object; passing positional
+    // arguments here is what previously produced malformed users.
+    const { user, token } = await authService.registerUser(req.body);
 
-    const user = await authService.registerUser(
-        name,
-        email,
-        password,
-        societyId
-    );
-
-    res.status(201).json({
-        success: true,
-        message: "User registered successfully",
-        user
+    sendResponse(res, 201, true, "User registered successfully", {
+        user,
+        token
     });
 };
 
-// 🔥 LOGIN (UPDATED)
+// LOGIN
 exports.login = async (req, res) => {
 
     const { identifier, password } = req.body;
 
     const { user, token } = await authService.loginUser(identifier, password);
 
-    res.json({
-        success: true,
-        token,
-        user
+    sendResponse(res, 200, true, "Logged in successfully", {
+        user,
+        token
     });
 };
 
@@ -38,12 +32,10 @@ exports.login = async (req, res) => {
 exports.sendOtp = async (req, res) => {
     const { phone } = req.body;
 
-    await otpService.sendOtp(phone);
+    const result = await otpService.sendOtp(phone);
 
-    res.json({
-        success: true,
-        message: "OTP sent successfully"
-    });
+    // devOtp is only ever populated outside production.
+    sendResponse(res, 200, true, "OTP sent successfully", result);
 };
 
 // VERIFY OTP
@@ -52,8 +44,5 @@ exports.verifyOtp = async (req, res) => {
 
     await otpService.verifyOtp(phone, otp);
 
-    res.json({
-        success: true,
-        message: "OTP verified successfully"
-    });
+    sendResponse(res, 200, true, "OTP verified successfully");
 };

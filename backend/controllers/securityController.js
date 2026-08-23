@@ -30,7 +30,7 @@ exports.getMyStatus = async (req, res) => {
 
   } catch (error) {
 
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       message: error.message
     });
@@ -66,7 +66,7 @@ exports.updateStatus = async (req, res) => {
 
   } catch (error) {
 
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       message: error.message
     });
@@ -103,7 +103,7 @@ exports.createVisitorRequest = async (req, res) => {
 
   } catch (error) {
 
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       message: error.message
     });
@@ -128,7 +128,7 @@ exports.getVisitorRequests = async (req, res) => {
 
   } catch (error) {
 
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       message: error.message
     });
@@ -153,7 +153,7 @@ exports.approveVisitor = async (req, res) => {
 
   } catch (error) {
 
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       message: error.message
     });
@@ -178,7 +178,7 @@ exports.rejectVisitor = async (req, res) => {
 
   } catch (error) {
 
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       message: error.message
     });
@@ -203,7 +203,7 @@ exports.reportFraud = async (req, res) => {
 
   } catch (error) {
 
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       message: error.message
     });
@@ -239,7 +239,7 @@ exports.addStaff = async (req, res) => {
 
   } catch (error) {
 
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       message: error.message
     });
@@ -266,7 +266,7 @@ exports.getMyStaff = async (
 
   } catch (error) {
 
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       message: error.message
     });
@@ -295,7 +295,7 @@ exports.approveStaff = async (
 
   } catch (error) {
 
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       message: error.message
     });
@@ -324,7 +324,7 @@ exports.rejectStaff = async (
 
   } catch (error) {
 
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       message: error.message
     });
@@ -354,7 +354,7 @@ exports.blockStaff = async (
 
   } catch (error) {
 
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       message: error.message
     });
@@ -383,7 +383,7 @@ exports.removeStaff = async (
 
   } catch (error) {
 
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       message: error.message
     });
@@ -424,7 +424,7 @@ exports.markEntry = async (
 
   } catch (error) {
 
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       message: error.message
     });
@@ -453,7 +453,7 @@ exports.markExit = async (
 
   } catch (error) {
 
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       message: error.message
     });
@@ -481,7 +481,7 @@ exports.getMyAttendance = async (
 
   } catch (error) {
 
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       message: error.message
     });
@@ -521,7 +521,7 @@ exports.createSecurityAlert = async (
 
   } catch (error) {
 
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       message: error.message
     });
@@ -549,7 +549,7 @@ exports.getSecurityAlerts = async (
 
   } catch (error) {
 
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       message: error.message
     });
@@ -577,7 +577,7 @@ exports.resolveAlert = async (
 
   } catch (error) {
 
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       message: error.message
     });

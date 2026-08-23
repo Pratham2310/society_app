@@ -2,11 +2,15 @@ const express=require("express");
 const router=express.Router();
 
 const auth=require("../middleware/authMiddleware");
+const tenantScope =
+  require("../middleware/tenantScope");
 const checkApproved=require("../middleware/checkApproved");
-const checkRole=require("../middleware/checkRole");
+const checkRole =
+  require("../middleware/requireRole").requireSocietyRole;
 const ctrl=require("../controllers/communityFundController");
 
 router.use(auth);
+router.use(tenantScope);
 router.use(checkApproved);
 
 //create Fund secretary

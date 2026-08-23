@@ -5,8 +5,8 @@ const ResidentSecurityStatus = require(
 const VisitorRequest=require("../models/VisitorRequest");
 const staffProfile=require("../models/StaffProfile");
 const staffAssignments=require("../models/StaffAssignment");
-const staffAtendance=require("../models/StaffAttendance");
-const securityAlert=require("../models/SecurityAlert");
+const StaffAttendance=require("../models/StaffAttendance");
+const SecurityAlert=require("../models/SecurityAlert");
 
 // Get resident status
 exports.getStatus = (residentId) =>

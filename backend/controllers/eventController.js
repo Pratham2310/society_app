@@ -1,12 +1,13 @@
+const logger = require("../utils/logger");
 const eventService=require("../services/eventServices");
 
 exports.createEvent= async(req,res)=>{
     try{
         const data=await eventService.createEvent(req);
-        console.log("event created",data);
+        logger.debug({ eventId: data?._id }, "event created");
         res.json({success:true,data});
     }catch(error){
-        res.status(500).json({success:false,error:error.message});
+        res.status(error.statusCode || 500).json({success:false,error:error.message});
     }
 };
 
@@ -15,7 +16,7 @@ exports.getEvents=async(req,res)=>{
         const data=await eventService.getEvent(req);
         res.json({success:true,data});
     }catch(error){
-        res.status(500).json({success:false,error:error.message});
+        res.status(error.statusCode || 500).json({success:false,error:error.message});
     }
 };
 
@@ -24,7 +25,7 @@ exports.getEventById=async(req,res)=>{
         const data=await eventService.getEventById(req.params.id,req);
         res.json({success:true,data});
     }catch(error){
-        res.status(500),json({success:false,error:error.message});
+        res.status(error.statusCode || 500).json({success:false,error:error.message});
     }
 };
 
@@ -44,7 +45,7 @@ exports.deleteEvent=async(req,res)=>{
         res.json({success:true,message:"event deleted successfully"});
     }
     catch(error){
-        res.status(500).json({success:false,error:error.message});
+        res.status(error.statusCode || 500).json({success:false,error:error.message});
     }
 };
 

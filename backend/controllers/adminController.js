@@ -14,17 +14,14 @@ exports.createSalesperson = async (req, res) => {
   }
 };
 
-exports.createSuperAdmin = async (req, res) => {
+//createSuperAdmin was removed. Superadmins are created only by
+//backend/scripts/createSuperadmin.js, never over HTTP.
+
+exports.listSalespeople = async (req, res, next) => {
   try {
-
-    const superAdmin = await adminService.createSuperAdmin(req.body);
-
-    res.status(201).json({
-      message: "SuperAdmin created",
-      data: superAdmin
-    });
-
+    const salespeople = await adminService.listSalespeople();
+    res.json({ message: "Salespeople fetched successfully", data: salespeople });
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    next(err);
   }
 };

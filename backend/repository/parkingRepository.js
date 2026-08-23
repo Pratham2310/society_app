@@ -15,14 +15,25 @@ exports.getSlots = (filter) =>
 exports.getSlotById = (id) => ParkingSlot.findById(id);
 
 // Update slot
-exports.updateSlot = (id, data) =>
-  ParkingSlot.findByIdAndUpdate(id, data, { new: true });
+exports.updateSlot = (id, data, session = null) =>
+  ParkingSlot.findByIdAndUpdate(id, data, {
+    new: true,
+    ...(session ? { session } : {}),
+  });
 
 
 // ================= ALLOTMENT =================
 
 // Create allotment
-exports.createAllotment = (data) => ParkingAllotment.create(data);
+exports.createAllotment = (data, session = null) => {
+
+  if (session) {
+    return ParkingAllotment.create([data], { session }).then((d) => d[0]);
+  }
+
+  return ParkingAllotment.create(data);
+
+};
 
 // Get active allotment by slot
 exports.getActiveAllotmentBySlot = (slotId) =>
@@ -39,8 +50,10 @@ exports.getActiveAllotmentByVehicle = (vehicleNumber) =>
     .lean();
 
 // Deactivate allotment
-exports.deactivateAllotment = (id) =>
-  ParkingAllotment.findByIdAndUpdate(id, { isActive: false });
+exports.deactivateAllotment = (id, session = null) =>
+  ParkingAllotment.findByIdAndUpdate(id, { isActive: false }, {
+    ...(session ? { session } : {}),
+  });
 
 // Get user's parking
 exports.getUserAllotment = (userId) =>

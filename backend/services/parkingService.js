@@ -1,6 +1,7 @@
 const repo=require("../repository/parkingRepository");
 const mongoose=require("mongoose");
 const AppError=require("../utils/appError");
+const {withTransaction}=require("../utils/transactionHelper");
 
 //===========create slot===========
 
@@ -51,19 +52,28 @@ exports.assignSlot=async(slotId,req)=>{
         throw new AppError("slot already occupied",400);
     }
 
-    //create allotment
-    const allotment=await repo.createAllotment({
-        societyId,
-        slotId:new mongoose.Types.ObjectId(slotId),
-        flatId,
-        vehivleNumber,
-        vehivleType,
-        ownerId
-    });
+    //Allotment and slot status must move together, or a slot ends up
+    //marked free while an allotment still claims it.
+    return withTransaction(async(session)=>{
 
-    //update slot
-    await repo.updateSlot(slotId,{status:"occupied",vehicleNumber,lastUpdated:new Date()});
-    return allotment;
+        const allotment=await repo.createAllotment({
+            societyId:req.user.societyId,
+            slotId:new mongoose.Types.ObjectId(slotId),
+            flatId,
+            vehicleNumber,
+            vehicleType,
+            ownerId
+        },session);
+
+        await repo.updateSlot(
+            slotId,
+            {status:"occupied",vehicleNumber,lastUpdated:new Date()},
+            session
+        );
+
+        return allotment;
+
+    });
 };
 
 //===========free slot===========
@@ -74,12 +84,19 @@ exports.freeSlot=async(slotId)=>{
         throw new AppError("No active allotment found for this slot",404);
     }
 
-    //deactivate allotment
-    await repo.deactivateAllotment(allotment._id);
+    return withTransaction(async(session)=>{
 
-    //update slot
-    await repo.updateSlot(slotId,{status:"free",currentVehicleNumber:null,lastUpdated:new Date()});
-    return {message:"slot freed successfully"};
+        await repo.deactivateAllotment(allotment._id,session);
+
+        await repo.updateSlot(
+            slotId,
+            {status:"free",currentVehicleNumber:null,lastUpdated:new Date()},
+            session
+        );
+
+        return {message:"slot freed successfully"};
+
+    });
 };
 
 
@@ -124,14 +141,14 @@ exports.getSlotDetails=async(slotId)=>{
     const allotment=await repo.getActiveAllotmentBySlotId(slotId);
 
     let isWrong=false;
-    if(allotment && allotment.vehicleNumber && allotmenr.vehicleNumber !== slot.vehicleNumber){
+    if(allotment && allotment.vehicleNumber && allotment.vehicleNumber !== slot.vehicleNumber){
         isWrong=true;
     }
 
     return {
         slot,
         allotmentVehicle:allotment?.vehicleNumber || null,
-        currentVehcile:slot.vehicleNumber,
+        currentVehicle:slot.vehicleNumber,
         isWrong
     };
 };

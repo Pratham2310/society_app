@@ -4,9 +4,15 @@ exports.Create=(data)=>{
     return Complaint.create(data);
 };
 
-exports.findAll=(filter)=>{
-    Complaint.find(filter).sort({createdAt:-1}).lean();
-}
+const {applyPagination}=require("../utils/pagination");
+
+//This previously had no return statement, so complaint listing
+//always resolved to undefined.
+exports.findPage=(filter,pagination)=>{
+    return applyPagination(Complaint.find(filter),pagination).lean();
+};
+
+exports.countAll=(filter)=>Complaint.countDocuments(filter);
 
 exports.findById=(id)=>Complaint.findById(id);
 

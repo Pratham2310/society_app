@@ -19,6 +19,8 @@ const {
   abortTransaction,
 } = require("../utils/transactionHelper");
 
+const notificationService = require("./notificationService");
+
 const AppError = require("../utils/appError");
 
 
@@ -92,6 +94,38 @@ const getValidatedApproval = async (
   );
 
   return approval;
+
+};
+
+
+// =======================================================
+// PRIVATE
+// VALIDATE RESIDENT OWNS THE REQUEST
+//
+// A visitor is at the gate for ONE flat. Society scoping alone only
+// proves the caller lives in the same society, so without this any
+// resident could approve a stranger into a neighbour's flat.
+//
+// Committee roles (secretary, chairman and so on) are residents with
+// administrative authority over the society's affairs — not authority
+// over who enters someone else's home. They get no exemption here.
+// =======================================================
+
+const validateApprovalOwnership = (
+  approval,
+  resident
+) => {
+
+  const owner = approval.residentId?._id || approval.residentId;
+
+  if (String(owner) !== String(resident.id)) {
+
+    throw new AppError(
+      "This approval request is for another resident.",
+      403
+    );
+
+  }
 
 };
 
@@ -197,9 +231,33 @@ const requestApproval = async (
   // Save Approval Request
   // ==========================================
 
-  return visitorApprovalRepository.create(
+  const approval = await visitorApprovalRepository.create(
     approvalData
   );
+
+  // ==========================================
+  // Notify The Resident
+  // ==========================================
+  // This is the whole point of the feature: someone is standing at
+  // the gate. It has to reach a locked phone, so it goes out as a
+  // push as well as an inbox row. Best-effort — the request is
+  // already recorded whether or not delivery succeeds.
+
+  await notificationService.notify({
+    userIds: [approval.residentId],
+    societyId: approval.societyId,
+    title: "Visitor at the gate",
+    message:
+      `${approval.visitorName || "A visitor"} is requesting entry.` +
+      ` Approve or reject within 30 minutes.`,
+    type: "general",
+    data: {
+      kind: "visitor_approval",
+      approvalId: String(approval._id),
+    },
+  });
+
+  return approval;
 
 };
 
@@ -231,6 +289,11 @@ const approveRequest = async (
       validatedBody.approvalId,
       resident.societyId
     );
+
+  validateApprovalOwnership(
+    approval,
+    resident
+  );
 
   let session;
 
@@ -325,6 +388,11 @@ const rejectRequest = async (
       validatedBody.approvalId,
       resident.societyId
     );
+
+  validateApprovalOwnership(
+    approval,
+    resident
+  );
 
   return visitorApprovalRepository.reject(
     approval._id,

@@ -4,11 +4,14 @@ const router=express.Router();
 const mapController=require("../controllers/mapController");
 const asyncHandler=require("../utils/asyncHandler");
 const authMiddleware=require("../middleware/authMiddleware");
+const tenantScope =
+  require("../middleware/tenantScope");
 const checkApproved=require("../middleware/checkApproved");
 
 
 //protected
 router.use(authMiddleware);
+router.use(tenantScope);
 router.use(checkApproved);
 
 //=========SERVICES=========
@@ -19,7 +22,7 @@ router.get("/services",mapController.getSocietyServices);
 router.get("/services/:id",mapController.getServiceDetails);
 
 //toggle visibility
-router.patch("services/:id/toggle",mapController.toggleVisibility);
+router.patch("/services/:id/toggle",mapController.toggleVisibility);
 
 module.exports=router;
 

@@ -107,6 +107,18 @@ const validateExit = (
 
 // =======================================================
 // PRIVATE
+// REF ID
+// findGuestPassById populates residentId, flatId and wingId, so
+// those fields arrive as documents rather than ObjectIds. GateLog
+// stores plain refs, so unwrap whichever form we are handed.
+// =======================================================
+
+const refId = (value) =>
+  value && typeof value === "object" && value._id ? value._id : value;
+
+
+// =======================================================
+// PRIVATE
 // BUILD ENTRY LOG
 // =======================================================
 
@@ -117,13 +129,17 @@ const buildEntryLog = (
 
   return {
 
-    societyId: guestPass.societyId,
+    societyId: refId(guestPass.societyId),
 
     guestPassId: guestPass._id,
 
-    residentId: guestPass.residentId,
+    residentId: refId(guestPass.residentId),
 
-    flatId: guestPass.flatId,
+    flatId: refId(guestPass.flatId),
+
+    //wingId is required by GateLog but was never set here, so every
+    //scan failed schema validation before it reached the database.
+    wingId: refId(guestPass.wingId),
 
     guardId: guard.id,
 
@@ -162,13 +178,17 @@ const buildExitLog = (
 
   return {
 
-    societyId: guestPass.societyId,
+    societyId: refId(guestPass.societyId),
 
     guestPassId: guestPass._id,
 
-    residentId: guestPass.residentId,
+    residentId: refId(guestPass.residentId),
 
-    flatId: guestPass.flatId,
+    flatId: refId(guestPass.flatId),
+
+    //wingId is required by GateLog but was never set here, so every
+    //scan failed schema validation before it reached the database.
+    wingId: refId(guestPass.wingId),
 
     guardId: guard.id,
 
