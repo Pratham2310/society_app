@@ -33,10 +33,13 @@ const societySchema = new Schema(
       default: 0
     },
 
+    //Six digits, enforced at the schema so nothing can write a
+    //non-numeric code by another path.
     societyCode: {
       type: String,
       required: true,
-      unique: true
+      unique: true,
+      match: [/^[0-9]{6}$/, "Society code must be 6 digits"]
     },
 
     status: {

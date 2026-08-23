@@ -62,8 +62,8 @@ const seed = async () => {
   const societyB = new mongoose.Types.ObjectId();
 
   await Society.create([
-    { _id: societyA, name: "Society A", societyCode: "AAA111" },
-    { _id: societyB, name: "Society B", societyCode: "BBB222" },
+    { _id: societyA, name: "Society A", societyCode: "100001" },
+    { _id: societyB, name: "Society B", societyCode: "100002" },
   ]);
 
   const [residentA, guardA, secretaryA, residentB, secretaryB] = await User.create([
@@ -530,11 +530,12 @@ test("the expiry job closes out passes that are past their date", { skip }, asyn
 // The screens before a resident has an account.
 // =======================================================
 
-test("a society code resolves to a society, case and spacing forgiven", { skip }, async () => {
+test("a society code resolves to a society, spacing forgiven", { skip }, async () => {
 
+  // Six boxes on screen, but a paste can carry whitespace.
   const res = await request(app)
     .post("/api/v1/societies/verify-code")
-    .send({ societyCode: " aaa111 " });
+    .send({ societyCode: " 100001 " });
 
   assert.strictEqual(res.status, 200, JSON.stringify(res.body));
   assert.strictEqual(res.body.data.name, "Society A");
@@ -547,7 +548,7 @@ test("an unknown code is a clear 404, not a crash", { skip }, async () => {
 
   const res = await request(app)
     .post("/api/v1/societies/verify-code")
-    .send({ societyCode: "000000" });
+    .send({ societyCode: "999999" });
 
   assert.strictEqual(res.status, 404);
   assert.match(res.body.message, /secretary/i, "tell them who to ask");
@@ -644,5 +645,26 @@ test("one resident claiming a flat blocks the next", { skip }, async () => {
   );
 
   await Flat.updateOne({ _id: flat._id }, { $set: { isOccupied: false } });
+
+});
+
+
+test("a society code with letters is rejected outright", { skip }, async () => {
+
+  // Codes are digits only: they get read aloud and typed into six
+  // boxes, so letters would only add spelling and O/0 confusion.
+  for (const bad of ["ABC123", "12345", "1234567", "12A456"]) {
+
+    const res = await request(app)
+      .post("/api/v1/societies/verify-code")
+      .send({ societyCode: bad });
+
+    assert.strictEqual(
+      res.status,
+      400,
+      `"${bad}" must be rejected as malformed, not looked up`
+    );
+
+  }
 
 });

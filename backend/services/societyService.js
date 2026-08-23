@@ -88,23 +88,22 @@ exports.createSociety = async (data, session) => {
 // it but it was never implemented, so joining a society failed with
 // a TypeError before anyone could get past step one.
 //
-// Codes are compared case-insensitively and trimmed: a resident is
-// reading six digits off a message or repeating them back over the
-// phone, and older societies carry the previous ABC1234 form.
+// Codes are six digits, nothing else. A resident reads them off a
+// message or hears them over the phone, so letters would only add
+// spelling, case and O/0 confusion.
 // =======================================================
+
+const CODE_PATTERN = /^[0-9]{6}$/;
 
 exports.verifySocietyCode = async (societyCode) => {
 
-  //Codes are alphanumeric by construction, so normalising to
-  //uppercase and matching exactly beats a case-insensitive regex —
-  //no escaping to get wrong, and the index is still used.
-  const code = String(societyCode || "")
-    .trim()
-    .replace(/[^a-zA-Z0-9]/g, "")
-    .toUpperCase();
+  //Strip anything a person might type around the digits — spaces from
+  //a copy-paste, a dash from reading it in pairs — then require
+  //exactly six digits.
+  const code = String(societyCode || "").replace(/[^0-9]/g, "");
 
-  if (!code) {
-    throw new AppError("Society code is required", 400);
+  if (!CODE_PATTERN.test(code)) {
+    throw new AppError("Society code must be 6 digits", 400);
   }
 
   const society = await Society.findOne({ societyCode: code })
