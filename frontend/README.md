@@ -61,17 +61,24 @@ Regenerate the TypeScript types whenever it changes:
 
 **Platform** (superadmin, salesperson)
 - Dashboard — societies onboarded, residents verified
-- Societies — list, and per-society residents/committee/security/staff
+- Societies — list, per-society residents/committee/security/staff, and a
+  Manage tab: correct details, assign or replace the secretary, attach
+  services from the catalogue, and (superadmin only) delete an empty
+  society
 - Draft — onboardings started but not finalised; resume or discard
 - Services — the shared catalogue residents see on their map
-- Salespeople — the roster with societies onboarded per person, superadmin only
+- Salespeople — the roster with societies onboarded per person; edit in
+  place, suspend, reactivate, or delete. Superadmin only
 
 The onboarding wizard is reached from Dashboard or Societies rather than
 its own nav item, since it is an action rather than a place.
 
 **Society** (committee)
 - Overview — dues, expenses, funds, open complaints, urgent notice
-- Resident approvals — the screen the mobile app waits on
+- Residents — the approval queue the mobile app waits on, plus the
+  roster: change someone's flat, or remove them when they move out.
+  Declining or moving hands the old flat back so the real occupant can
+  register
 - Notices — publish, mark urgent, delete
 - Complaints — the queue, filterable by status
 

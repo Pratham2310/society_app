@@ -11,8 +11,15 @@ class SocietyServiceRepository {
   }
 
   async getBySociety(societyId) {
+    // The Service model has category, openTime and closeTime — there is
+    // no "type" or "timing" field, so the previous projection returned
+    // undefined for everything but name and phone.
     return SocietyService.find({ societyId })
-      .populate("serviceId", "name type timing phone")
+      .populate(
+        "serviceId",
+        "name category phone address openTime closeTime is24Hours isActive"
+      )
+      .sort({ isEmergency: -1, isRecommended: -1 })
       .lean();
   }
 
@@ -20,6 +27,10 @@ class SocietyServiceRepository {
     return SocietyService.find({ serviceId })
       .populate("societyId", "name city")
       .lean();
+  }
+
+  async updateLink(linkId, data) {
+    return SocietyService.findByIdAndUpdate(linkId, { $set: data }, { new: true });
   }
 
   async remove(serviceId, societyId) {

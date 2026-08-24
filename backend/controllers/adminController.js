@@ -25,3 +25,22 @@ exports.listSalespeople = async (req, res, next) => {
     next(err);
   }
 };
+
+
+exports.updateSalesperson = async (req, res, next) => {
+  try {
+    const updated = await adminService.updateSalesperson(req.params.id, req.body);
+    res.json({ message: "Salesperson updated", data: updated });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.deleteSalesperson = async (req, res, next) => {
+  try {
+    await adminService.deleteSalesperson(req.params.id);
+    res.json({ message: "Salesperson deleted", data: null });
+  } catch (err) {
+    next(err);
+  }
+};

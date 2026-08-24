@@ -5,6 +5,7 @@ import { Link, useParams } from "react-router-dom";
 import { api } from "../lib/api";
 import { PageHeader } from "../components/Layout";
 import { Loading, ErrorBanner, Empty, StatusPill, formatDate } from "../components/ui";
+import { SocietyManage } from "./SocietyManage";
 
 interface Society {
   _id: string;
@@ -146,7 +147,7 @@ interface Person {
   status?: string;
 }
 
-type Tab = "residents" | "leadership" | "security" | "staff";
+type Tab = "residents" | "leadership" | "security" | "staff" | "manage";
 
 const TABS: { key: Tab; label: string; path: (id: string) => string }[] = [
   { key: "residents", label: "Residents", path: (id) => `/sales/society/${id}/residents` },
@@ -165,15 +166,17 @@ export function SocietyDetail() {
     queryFn: () => api.get<Society>(`/sales/society/${societyId}`),
   });
 
-  const active = TABS.find((t) => t.key === tab)!;
+  const active = TABS.find((t) => t.key === tab);
 
   const people = useQuery({
+    //Manage is not a people list, so it must not drive this query.
+    enabled: Boolean(active),
     queryKey: ["society-people", societyId, tab],
     queryFn: async () => {
       // These endpoints have never been exercised, and their shapes
       // differ: some return an array, some wrap it. Normalise here so
       // the table does not have to guess.
-      const raw = await api.get<unknown>(active.path(societyId), { page: 1, limit: 50 });
+      const raw = await api.get<unknown>(active!.path(societyId), { page: 1, limit: 50 });
       if (Array.isArray(raw)) return raw as Person[];
       const obj = raw as Record<string, unknown>;
       for (const key of ["residents", "members", "staff", "leadership", "security", "data", "items"]) {
@@ -209,12 +212,23 @@ export function SocietyDetail() {
               {t.label}
             </button>
           ))}
+          <span className="grow" />
+          <button
+            className={`btn btn-sm ${tab === "manage" ? "btn-primary" : "btn-ghost"}`}
+            onClick={() => setTab("manage")}
+          >
+            Manage
+          </button>
         </div>
 
-        {people.isLoading ? (
+        {tab === "manage" ? (
+          society.data
+            ? <SocietyManage society={society.data} />
+            : <Loading label="Loading society" />
+        ) : people.isLoading ? (
           <Loading />
         ) : (people.data?.length ?? 0) === 0 ? (
-          <Empty>No {active.label.toLowerCase()} recorded for this society.</Empty>
+          <Empty>No {active?.label.toLowerCase()} recorded for this society.</Empty>
         ) : (
           <div className="tablewrap">
             <table className="data">

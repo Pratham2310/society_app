@@ -45,3 +45,96 @@ exports.getRegistrationStructure = async (req, res) => {
   });
 
 };
+
+
+// UPDATE SOCIETY
+exports.updateSociety = async (req, res, next) => {
+  try {
+    const society = await societyService.updateSociety(req.params.societyId, req.body);
+    res.json({ message: "Society updated", data: society });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// DELETE SOCIETY
+exports.deleteSociety = async (req, res, next) => {
+  try {
+    const result = await societyService.deleteSociety(
+      req.params.societyId,
+      req.body.confirmName
+    );
+    res.json({ message: "Society deleted", data: result });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ASSIGN SECRETARY
+exports.assignSecretary = async (req, res, next) => {
+  try {
+    const result = await societyService.assignSecretary(req.params.societyId, req.body);
+    res.json({ message: "Secretary assigned", data: result });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// LIST MEMBERS
+exports.listMembers = async (req, res, next) => {
+  try {
+    const members = await societyService.listMembers(req.params.societyId);
+    res.json({ message: "Members fetched successfully", data: members });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+// SERVICES ATTACHED TO A SOCIETY
+exports.listSocietyServices = async (req, res, next) => {
+  try {
+    const services = await societyService.listSocietyServices(req.params.societyId);
+    res.json({ message: "Services fetched successfully", data: services });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.addSocietyServices = async (req, res, next) => {
+  try {
+    const result = await societyService.addServicesToSociety(
+      req.params.societyId,
+      req.body.serviceIds ?? req.body.serviceId,
+      req.body
+    );
+    res.status(201).json({ message: "Services added", data: result });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.updateSocietyService = async (req, res, next) => {
+  try {
+    const updated = await societyService.updateSocietyService(
+      req.params.societyId,
+      req.params.serviceId,
+      req.body
+    );
+    res.json({ message: "Service updated", data: updated });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.removeSocietyService = async (req, res, next) => {
+  try {
+    await societyService.removeServiceFromSociety(
+      req.params.societyId,
+      req.params.serviceId
+    );
+    res.json({ message: "Service removed from society", data: null });
+  } catch (err) {
+    next(err);
+  }
+};

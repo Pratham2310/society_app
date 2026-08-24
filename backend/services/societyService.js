@@ -219,3 +219,365 @@ exports.getRegistrationStructure = async (societyId) => {
   };
 
 };
+
+
+// =======================================================
+// UPDATE A SOCIETY
+//
+// Details only. societyCode is deliberately not editable: residents
+// have it written down and read it out, and changing it would silently
+// break every pending registration.
+// =======================================================
+
+exports.updateSociety = async (societyId, data) => {
+
+  const allowed = {};
+
+  for (const field of ["name", "address", "city", "state", "pincode", "status"]) {
+    if (data[field] !== undefined) allowed[field] = data[field];
+  }
+
+  if (!Object.keys(allowed).length) {
+    throw new AppError("Nothing to update", 400);
+  }
+
+  const updated = await Society.findByIdAndUpdate(
+    societyId,
+    { $set: allowed },
+    { new: true, runValidators: true }
+  );
+
+  if (!updated) {
+    throw new AppError("Society not found", 404);
+  }
+
+  return updated;
+
+};
+
+
+// =======================================================
+// DELETE A SOCIETY
+//
+// Refused while residents live in it. A society is the root of wings,
+// flats, notices, complaints, gate logs and every resident account —
+// deleting one with people in it is not a mistake anyone recovers from
+// through the UI.
+//
+// The caller must repeat the society's name back, which is the only
+// confirmation that survives a misplaced click.
+// =======================================================
+
+exports.deleteSociety = async (societyId, confirmName) => {
+
+  const User = require("../models/User");
+  const Wing = require("../models/Wing");
+  const Flat = require("../models/Flats");
+
+  const society = await Society.findById(societyId);
+
+  if (!society) {
+    throw new AppError("Society not found", 404);
+  }
+
+  if (String(confirmName || "").trim() !== society.name) {
+    throw new AppError(
+      "Type the society's name exactly to confirm deletion",
+      400
+    );
+  }
+
+  // The secretary created during onboarding does not count — they exist
+  // because of the society, not independently of it.
+  const residents = await User.countDocuments({
+    societyId,
+    societyRole: { $ne: "secretary" },
+  });
+
+  if (residents > 0) {
+    throw new AppError(
+      `${residents} ${residents === 1 ? "person lives" : "people live"} in this society. ` +
+      `Remove them first, or set the society to handed_over instead of deleting it.`,
+      409
+    );
+  }
+
+  const { withTransaction } = require("../utils/transactionHelper");
+
+  return withTransaction(async (session) => {
+
+    const removed = {
+      flats: (await Flat.deleteMany({ societyId }, { session })).deletedCount,
+      wings: (await Wing.deleteMany({ societyId }, { session })).deletedCount,
+      users: (await User.deleteMany({ societyId }, { session })).deletedCount,
+    };
+
+    await Society.deleteOne({ _id: societyId }, { session });
+
+    return { deleted: true, ...removed };
+
+  });
+
+};
+
+
+// =======================================================
+// ASSIGN A SECRETARY
+//
+// Two ways in, because both happen: promote a resident who already
+// lives there, or create the account outright when onboarding did not.
+//
+// A society has one secretary at a time, so whoever held it is stepped
+// down to member in the same transaction — otherwise both would hold
+// the role and the permission checks would pass for two people.
+// =======================================================
+
+exports.assignSecretary = async (societyId, data) => {
+
+  const User = require("../models/User");
+  const { withTransaction } = require("../utils/transactionHelper");
+
+  const society = await Society.findById(societyId);
+
+  if (!society) {
+    throw new AppError("Society not found", 404);
+  }
+
+  return withTransaction(async (session) => {
+
+    let incoming;
+
+    if (data.userId) {
+
+      incoming = await User.findOne({
+        _id: data.userId,
+        societyId,
+      }).session(session);
+
+      if (!incoming) {
+        throw new AppError("That person does not live in this society", 404);
+      }
+
+    } else {
+
+      const { name, email, phone, password } = data;
+
+      if (!name || !email || !phone || !password) {
+        throw new AppError(
+          "A new secretary needs a name, email, phone and password",
+          400
+        );
+      }
+
+      const clash = await User.findOne({ email }).session(session);
+
+      if (clash) {
+        throw new AppError("A user with that email already exists", 409);
+      }
+
+      const created = await User.create([{
+        name,
+        email,
+        phone,
+        password: await bcrypt.hash(password, 10),
+        systemRole: "user",
+        societyRole: "member",
+        societyId,
+        status: "approved",
+        isVerified: true,
+        isOnboarded: true,
+      }], { session });
+
+      incoming = created[0];
+
+    }
+
+    // Step down the current holder before promoting, so the society
+    // never has two secretaries at once.
+    const outgoing = await User.findOneAndUpdate(
+      { societyId, societyRole: "secretary", _id: { $ne: incoming._id } },
+      { $set: { societyRole: "member" } },
+      { new: true, session }
+    );
+
+    incoming.societyRole = "secretary";
+    incoming.status = "approved";
+    incoming.isVerified = true;
+
+    await incoming.save({ session });
+
+    await Society.updateOne(
+      { _id: societyId },
+      { $set: { secretaryId: incoming._id } },
+      { session }
+    );
+
+    return {
+      secretary: {
+        _id: incoming._id,
+        name: incoming.name,
+        email: incoming.email,
+        phone: incoming.phone,
+        societyRole: incoming.societyRole,
+      },
+      steppedDown: outgoing
+        ? { _id: outgoing._id, name: outgoing.name }
+        : null,
+    };
+
+  });
+
+};
+
+
+// =======================================================
+// SOCIETY MEMBERS
+// Everyone in a society, for the "promote someone" picker.
+// =======================================================
+
+exports.listMembers = async (societyId) => {
+
+  const User = require("../models/User");
+
+  return User.find({ societyId })
+    .select("name email phone societyRole flatNumber status")
+    .sort({ societyRole: 1, name: 1 })
+    .lean();
+
+};
+
+
+// =======================================================
+// SERVICES ATTACHED TO A SOCIETY
+//
+// The catalogue is shared; which entries a society actually shows its
+// residents is per-society, along with whether one is recommended, an
+// emergency number, or has a local note ("ask for Ramesh").
+//
+// The assign endpoints that already existed are service-centric — one
+// service, many societies — which is the wrong way round when you are
+// looking at a society and want to add something to it.
+// =======================================================
+
+const societyServiceRepo = require("../repository/societyServicerepository");
+
+exports.listSocietyServices = async (societyId) => {
+
+  const rows = await societyServiceRepo.getBySociety(societyId);
+
+  //Flatten the join row and the service into one object, since a
+  //client rendering a list does not care that this is a join.
+  return rows
+    .filter((row) => row.serviceId)
+    .map((row) => ({
+      _id: row.serviceId._id,
+      linkId: row._id,
+      name: row.serviceId.name,
+      category: row.serviceId.category,
+      phone: row.serviceId.phone,
+      address: row.serviceId.address,
+      openTime: row.serviceId.openTime,
+      closeTime: row.serviceId.closeTime,
+      is24Hours: row.serviceId.is24Hours,
+      isActive: row.serviceId.isActive,
+      isRecommended: Boolean(row.isRecommended),
+      isEmergency: Boolean(row.isEmergency),
+      isVisible: row.isVisible !== false,
+      notes: row.notes || "",
+    }));
+
+};
+
+
+exports.addServicesToSociety = async (societyId, serviceIds, options = {}) => {
+
+  const Service = require("../models/Service");
+
+  const society = await Society.findById(societyId).select("_id").lean();
+
+  if (!society) {
+    throw new AppError("Society not found", 404);
+  }
+
+  const ids = (Array.isArray(serviceIds) ? serviceIds : [serviceIds]).filter(Boolean);
+
+  if (!ids.length) {
+    throw new AppError("Pick at least one service", 400);
+  }
+
+  const found = await Service.find({ _id: { $in: ids } }).select("_id").lean();
+
+  if (found.length !== ids.length) {
+    throw new AppError("One or more of those services no longer exists", 404);
+  }
+
+  const added = [];
+  const alreadyThere = [];
+
+  for (const serviceId of ids) {
+
+    //A unique index covers the race; this keeps the common case from
+    //throwing and lets the response say which were already attached.
+    const exists = await societyServiceRepo.exists(serviceId, societyId);
+
+    if (exists) {
+      alreadyThere.push(serviceId);
+      continue;
+    }
+
+    const row = await societyServiceRepo.assign(serviceId, societyId);
+
+    if (options.isRecommended !== undefined || options.isEmergency !== undefined) {
+      await societyServiceRepo.updateLink(row._id, {
+        isRecommended: Boolean(options.isRecommended),
+        isEmergency: Boolean(options.isEmergency),
+      });
+    }
+
+    added.push(serviceId);
+
+  }
+
+  return { added: added.length, alreadyAttached: alreadyThere.length };
+
+};
+
+
+exports.updateSocietyService = async (societyId, serviceId, data) => {
+
+  const link = await societyServiceRepo.exists(serviceId, societyId);
+
+  if (!link) {
+    throw new AppError("That service is not attached to this society", 404);
+  }
+
+  const allowed = {};
+
+  for (const field of ["isRecommended", "isEmergency", "isVisible"]) {
+    if (data[field] !== undefined) allowed[field] = Boolean(data[field]);
+  }
+
+  if (data.notes !== undefined) allowed.notes = String(data.notes).slice(0, 500);
+
+  if (!Object.keys(allowed).length) {
+    throw new AppError("Nothing to update", 400);
+  }
+
+  return societyServiceRepo.updateLink(link._id, allowed);
+
+};
+
+
+exports.removeServiceFromSociety = async (societyId, serviceId) => {
+
+  const removed = await societyServiceRepo.remove(serviceId, societyId);
+
+  if (!removed) {
+    throw new AppError("That service is not attached to this society", 404);
+  }
+
+  //The service itself stays in the catalogue — it is shared, and other
+  //societies may still be using it.
+  return { removed: true };
+
+};
