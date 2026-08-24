@@ -19,7 +19,11 @@ import { api } from "./api";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    // SDK 54 split the old shouldShowAlert into two: a heads-up banner
+    // while the app is open, and an entry in the notification centre.
+    // A gate approval is worth both.
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
   }),
@@ -36,14 +40,31 @@ async function ensureAndroidChannel() {
   });
 }
 
-/** Returns the Expo token if one was obtained and registered. */
-export async function registerForPush(): Promise<string | null> {
+/**
+ * Why push is not available, when it is not. The profile screen shows
+ * this, so a resident is not told to check settings they never
+ * touched.
+ */
+export type PushBlocker = "simulator" | "expo-go" | "denied" | "failed";
+
+export interface PushResult {
+  token: string | null;
+  blocked?: PushBlocker;
+}
+
+// Expo Go dropped remote push in SDK 53. It still runs the app fine,
+// but a token can only come from a development or production build.
+const IN_EXPO_GO = Constants.executionEnvironment === "storeClient";
+
+export async function registerForPush(): Promise<PushResult> {
 
   try {
 
     // A simulator cannot receive a push, and asking for permission
     // there just produces a confusing failure.
-    if (!Device.isDevice) return null;
+    if (!Device.isDevice) return { token: null, blocked: "simulator" };
+
+    if (IN_EXPO_GO) return { token: null, blocked: "expo-go" };
 
     await ensureAndroidChannel();
 
@@ -55,10 +76,10 @@ export async function registerForPush(): Promise<string | null> {
       status = asked.status;
     }
 
-    if (status !== "granted") return null;
+    if (status !== "granted") return { token: null, blocked: "denied" };
 
-    // On a bare or EAS build the project id is required; without it
-    // getExpoPushTokenAsync throws rather than returning null.
+    // On a development or production build the project id is required;
+    // without it getExpoPushTokenAsync throws rather than returning null.
     const projectId =
       Constants.expoConfig?.extra?.eas?.projectId ??
       (Constants as { easConfig?: { projectId?: string } }).easConfig?.projectId;
@@ -73,13 +94,21 @@ export async function registerForPush(): Promise<string | null> {
       deviceId: Device.modelId ?? undefined,
     });
 
-    return token;
+    return { token };
 
   } catch {
-    return null;
+    return { token: null, blocked: "failed" };
   }
 
 }
+
+/** What to tell the resident when there is no token. */
+export const PUSH_BLOCKER_TEXT: Record<PushBlocker, string> = {
+  simulator: "A simulator cannot receive alerts. Use a real phone.",
+  "expo-go": "Expo Go cannot receive alerts. A development build can.",
+  denied: "Turned off in your phone settings.",
+  failed: "Could not reach the notification service.",
+};
 
 export async function unregisterPush(token: string | null) {
   if (!token) return;

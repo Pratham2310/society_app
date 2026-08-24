@@ -66,15 +66,31 @@ src/
   `Idempotency-Key`, and the scanner locks on a ref rather than state — the
   camera fires the same barcode many times a second.
 
-- **Push needs credentials.** Expo push tokens require FCM (Android) and APNs
-  (iOS) credentials uploaded to EAS before a production build. Until then
-  `registerForPush()` returns `null` on a device and the app works without it.
+- **Push does not work in Expo Go.** Remote notifications were removed from Expo
+  Go in SDK 53, so a token can only come from a development or production build.
+  `registerForPush()` reports why it could not get one and the profile screen
+  says so; everything else works normally. Before a production build, FCM
+  (Android) and APNs (iOS) credentials have to be uploaded to EAS.
+
+## SDK version
+
+This targets **Expo SDK 54**. Expo Go on iOS only ever supports the newest SDK,
+so if the app store updates Expo Go past this, the project has to move with it:
+
+```bash
+npm install expo@^<next>.0.0
+npx expo install --fix
+npx expo-doctor
+```
 
 ## Checks
 
 ```bash
 npm run typecheck   # tsc --noEmit
+npm run bundle      # compiles every route through Metro
+npx expo-doctor     # dependency and config sanity
 ```
 
-There is no simulator in CI, so the typecheck is the only automated gate. The
-screens have not been rendered on a device.
+`bundle` is the strongest gate available without a device — it resolves and
+compiles every route and native module. It will not tell you whether anything
+looks right. The screens have not been rendered.

@@ -4,7 +4,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { useAuth, isCommittee, isGuard } from "../../src/lib/auth";
-import { registerForPush, unregisterPush } from "../../src/lib/push";
+import {
+  registerForPush, unregisterPush, PUSH_BLOCKER_TEXT, type PushBlocker,
+} from "../../src/lib/push";
 import { colors, space, type } from "../../src/theme";
 import { Button, Card, Pill } from "../../src/components/ui";
 
@@ -30,6 +32,7 @@ export default function ProfileScreen() {
   const qc = useQueryClient();
 
   const [pushToken, setPushToken] = useState<string | null>(null);
+  const [blocked, setBlocked] = useState<PushBlocker | null>(null);
   const [enabling, setEnabling] = useState(true);
 
   useEffect(() => {
@@ -37,8 +40,11 @@ export default function ProfileScreen() {
     // already agreed to alerts during registration, and a visitor
     // waiting at the gate is the whole point of the notification.
     let alive = true;
-    registerForPush().then((token) => {
-      if (alive) { setPushToken(token); setEnabling(false); }
+    registerForPush().then((result) => {
+      if (!alive) return;
+      setPushToken(result.token);
+      setBlocked(result.blocked ?? null);
+      setEnabling(false);
     });
     return () => { alive = false; };
   }, []);
@@ -93,7 +99,8 @@ export default function ProfileScreen() {
               <Text style={s.meta}>
                 {enabling ? "Checking…"
                   : pushToken ? "Visitor approvals and notices reach this phone."
-                    : "Turned off in your phone settings."}
+                    : blocked ? PUSH_BLOCKER_TEXT[blocked]
+                      : "Alerts are off."}
               </Text>
             </View>
             <Switch
@@ -103,10 +110,13 @@ export default function ProfileScreen() {
               onValueChange={async (on) => {
                 setEnabling(true);
                 if (on) {
-                  setPushToken(await registerForPush());
+                  const result = await registerForPush();
+                  setPushToken(result.token);
+                  setBlocked(result.blocked ?? null);
                 } else {
                   await unregisterPush(pushToken);
                   setPushToken(null);
+                  setBlocked(null);
                 }
                 setEnabling(false);
               }}

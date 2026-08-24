@@ -6,7 +6,6 @@
     "orientation": "portrait",
     "scheme": "societyledger",
     "userInterfaceStyle": "light",
-    "newArchEnabled": false,
     "splash": {
       "resizeMode": "contain",
       "backgroundColor": "#EAF1DC"
