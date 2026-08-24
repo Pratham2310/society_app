@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { useAuth, isSuperadmin } from "../lib/auth";
 import { ErrorBanner, Loading, Empty } from "../components/ui";
+import { SocietyServices } from "./SocietyServices";
 
 // =======================================================
 // SOCIETY MANAGEMENT
@@ -319,6 +320,10 @@ export function SocietyManage({ society }: { society: Society }) {
         </div>
 
       </section>
+
+      {/* ---------- services ---------- */}
+
+      <SocietyServices societyId={society._id} />
 
       {/* ---------- danger ---------- */}
 

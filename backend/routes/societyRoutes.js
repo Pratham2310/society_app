@@ -76,4 +76,43 @@ router.get(
   asyncHandler(societyController.listMembers)
 );
 
+//=====================================================================
+//SERVICES ATTACHED TO A SOCIETY
+//
+//The existing /services/:id/assign routes are service-centric — one
+//service, many societies. These are the other way round, which is how
+//you think about it when looking at one society.
+//=====================================================================
+
+router.get(
+  "/:societyId/services",
+  auth, tenantScope, checkSystemRole("superadmin", "salesperson"),
+  validateParams(societyIdParamSchema),
+  asyncHandler(societyController.listSocietyServices)
+);
+
+router.post(
+  "/:societyId/services",
+  auth, tenantScope, checkSystemRole("superadmin", "salesperson"),
+  validateParams(societyIdParamSchema),
+  asyncHandler(societyController.addSocietyServices)
+);
+
+//Per-society flags: recommended, emergency, hidden, and a local note.
+router.patch(
+  "/:societyId/services/:serviceId",
+  auth, tenantScope, checkSystemRole("superadmin", "salesperson"),
+  validateParams(societyIdParamSchema),
+  asyncHandler(societyController.updateSocietyService)
+);
+
+//Detaches only. The service stays in the shared catalogue for everyone
+//else still using it.
+router.delete(
+  "/:societyId/services/:serviceId",
+  auth, tenantScope, checkSystemRole("superadmin", "salesperson"),
+  validateParams(societyIdParamSchema),
+  asyncHandler(societyController.removeSocietyService)
+);
+
 module.exports = router;

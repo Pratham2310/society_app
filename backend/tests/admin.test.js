@@ -442,3 +442,207 @@ test("a resident from another society cannot be promoted", { skip }, async () =>
   assert.strictEqual(res.status, 404, "they do not live in that society");
 
 });
+
+
+// =======================================================
+// SERVICES ON A SOCIETY
+//
+// The catalogue is shared; attachment is per-society. Detaching must
+// never remove the service itself.
+// =======================================================
+
+const makeService = (label) =>
+  mongoose.model("Service").create({
+    name: `${label} ${unique()}`,
+    category: "health",
+    phone: "9820000001",
+    isActive: true,
+  });
+
+
+test("services can be attached to a society after onboarding", { skip }, async () => {
+
+  const boss = await makeUser("superadmin", "Service Boss");
+  const { society } = await onboard(tokenFor(boss), "Service Society");
+
+  const a = await makeService("Clinic");
+  const b = await makeService("Pharmacy");
+
+  const before = await request(app)
+    .get(`/api/v1/societies/${society._id}/services`)
+    .set("Authorization", `Bearer ${tokenFor(boss)}`);
+
+  assert.strictEqual(before.body.data.length, 0, "a new society starts with none");
+
+  const added = await request(app)
+    .post(`/api/v1/societies/${society._id}/services`)
+    .set("Authorization", `Bearer ${tokenFor(boss)}`)
+    .send({ serviceIds: [String(a._id), String(b._id)] });
+
+  assert.strictEqual(added.status, 201, JSON.stringify(added.body));
+  assert.strictEqual(added.body.data.added, 2);
+
+  const after = await request(app)
+    .get(`/api/v1/societies/${society._id}/services`)
+    .set("Authorization", `Bearer ${tokenFor(boss)}`);
+
+  assert.strictEqual(after.body.data.length, 2);
+
+  // The populate previously asked for "type" and "timing", which the
+  // Service model does not have, so every field came back undefined.
+  assert.ok(after.body.data[0].name, "the service name comes through");
+  assert.ok(after.body.data[0].category, "and its category");
+
+});
+
+
+test("attaching the same service twice is a no-op", { skip }, async () => {
+
+  const boss = await makeUser("superadmin", "Dupe Boss");
+  const { society } = await onboard(tokenFor(boss), "Dupe Society");
+  const svc = await makeService("Repeated");
+
+  await request(app)
+    .post(`/api/v1/societies/${society._id}/services`)
+    .set("Authorization", `Bearer ${tokenFor(boss)}`)
+    .send({ serviceIds: [String(svc._id)] });
+
+  const again = await request(app)
+    .post(`/api/v1/societies/${society._id}/services`)
+    .set("Authorization", `Bearer ${tokenFor(boss)}`)
+    .send({ serviceIds: [String(svc._id)] });
+
+  assert.strictEqual(again.status, 201);
+  assert.strictEqual(again.body.data.added, 0);
+  assert.strictEqual(again.body.data.alreadyAttached, 1);
+
+  const list = await request(app)
+    .get(`/api/v1/societies/${society._id}/services`)
+    .set("Authorization", `Bearer ${tokenFor(boss)}`);
+
+  assert.strictEqual(list.body.data.length, 1, "still attached exactly once");
+
+});
+
+
+test("per-society flags and notes are stored on the link", { skip }, async () => {
+
+  const boss = await makeUser("superadmin", "Flag Boss");
+  const { society } = await onboard(tokenFor(boss), "Flag Society");
+  const svc = await makeService("Flagged");
+
+  await request(app)
+    .post(`/api/v1/societies/${society._id}/services`)
+    .set("Authorization", `Bearer ${tokenFor(boss)}`)
+    .send({ serviceIds: [String(svc._id)] });
+
+  const patched = await request(app)
+    .patch(`/api/v1/societies/${society._id}/services/${svc._id}`)
+    .set("Authorization", `Bearer ${tokenFor(boss)}`)
+    .send({ isEmergency: true, notes: "Ask for Ramesh" });
+
+  assert.strictEqual(patched.status, 200, JSON.stringify(patched.body));
+
+  const list = await request(app)
+    .get(`/api/v1/societies/${society._id}/services`)
+    .set("Authorization", `Bearer ${tokenFor(boss)}`);
+
+  const entry = list.body.data[0];
+
+  assert.strictEqual(entry.isEmergency, true);
+  assert.strictEqual(entry.notes, "Ask for Ramesh");
+
+  // The flags belong to the link, not the shared service — another
+  // society must not inherit them.
+  const service = await mongoose.model("Service").findById(svc._id).lean();
+  assert.strictEqual(service.isEmergency, undefined);
+
+});
+
+
+test("detaching a service leaves it in the catalogue", { skip }, async () => {
+
+  const boss = await makeUser("superadmin", "Detach Boss");
+  const { society } = await onboard(tokenFor(boss), "Detach Society");
+  const svc = await makeService("Shared");
+
+  await request(app)
+    .post(`/api/v1/societies/${society._id}/services`)
+    .set("Authorization", `Bearer ${tokenFor(boss)}`)
+    .send({ serviceIds: [String(svc._id)] });
+
+  const removed = await request(app)
+    .delete(`/api/v1/societies/${society._id}/services/${svc._id}`)
+    .set("Authorization", `Bearer ${tokenFor(boss)}`);
+
+  assert.strictEqual(removed.status, 200);
+
+  const list = await request(app)
+    .get(`/api/v1/societies/${society._id}/services`)
+    .set("Authorization", `Bearer ${tokenFor(boss)}`);
+
+  assert.strictEqual(list.body.data.length, 0);
+
+  // Other societies may still be using it.
+  assert.ok(
+    await mongoose.model("Service").findById(svc._id),
+    "the service itself must survive"
+  );
+
+});
+
+
+test("onboarding links the services chosen at step four", { skip }, async () => {
+
+  const boss = await makeUser("superadmin", "Step4 Boss");
+  const svc = await makeService("Chosen At Onboarding");
+
+  const stamp = unique();
+
+  const step1 = await request(app)
+    .post("/api/v1/onboarding/step1")
+    .set("Authorization", `Bearer ${tokenFor(boss)}`)
+    .send({
+      societyName: `Step4 Society ${stamp}`,
+      address: "1 Road", city: "Nashik", state: "MH", pincode: "422001",
+    });
+
+  const draftId = step1.body.data._id;
+
+  await request(app).post("/api/v1/onboarding/step2")
+    .set("Authorization", `Bearer ${tokenFor(boss)}`)
+    .send({ draftId, structure: [{ name: "A", totalFloors: 1, flatsPerFloor: 2 }] });
+
+  await request(app).post("/api/v1/onboarding/step3")
+    .set("Authorization", `Bearer ${tokenFor(boss)}`)
+    .send({
+      draftId,
+      secretary: {
+        name: "S4 Sec", email: `s4sec${stamp}@test.com`,
+        phone: "9581000009", password: "Password123!",
+      },
+    });
+
+  // step4 stored these and finalize dropped them, so choosing services
+  // during onboarding did nothing at all.
+  await request(app).post("/api/v1/onboarding/step4")
+    .set("Authorization", `Bearer ${tokenFor(boss)}`)
+    .send({ draftId, services: [{ serviceId: String(svc._id) }] });
+
+  const done = await request(app).post("/api/v1/onboarding/finalize")
+    .set("Authorization", `Bearer ${tokenFor(boss)}`)
+    .send({ draftId });
+
+  assert.strictEqual(done.status, 200, JSON.stringify(done.body));
+
+  const list = await request(app)
+    .get(`/api/v1/societies/${done.body.data.society._id}/services`)
+    .set("Authorization", `Bearer ${tokenFor(boss)}`);
+
+  assert.strictEqual(
+    list.body.data.length,
+    1,
+    "the service picked at step 4 must actually be attached"
+  );
+
+});

@@ -62,8 +62,9 @@ Regenerate the TypeScript types whenever it changes:
 **Platform** (superadmin, salesperson)
 - Dashboard — societies onboarded, residents verified
 - Societies — list, per-society residents/committee/security/staff, and a
-  Manage tab: correct details, assign or replace the secretary, and
-  (superadmin only) delete an empty society
+  Manage tab: correct details, assign or replace the secretary, attach
+  services from the catalogue, and (superadmin only) delete an empty
+  society
 - Draft — onboardings started but not finalised; resume or discard
 - Services — the shared catalogue residents see on their map
 - Salespeople — the roster with societies onboarded per person; edit in

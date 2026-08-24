@@ -266,6 +266,21 @@ exports.finalizeOnboarding= async(data,user)=>{
             },session);
         }
 
+        //Link the services chosen at step 4. Until now step4 stored
+        //them in the draft and finalize dropped them, so picking
+        //services during onboarding did nothing at all.
+        if(Array.isArray(d.services) && d.services.length){
+            const societyServiceRepo=require("../repository/societyServicerepository");
+            for(const entry of d.services){
+                const serviceId=entry?.serviceId || entry?._id || entry;
+                if(!serviceId) continue;
+                const already=await societyServiceRepo.exists(serviceId,society._id);
+                if(!already){
+                    await societyServiceRepo.assign(serviceId,society._id);
+                }
+            }
+        }
+
         //mark draft as completed
         draft.status="completed";
         await draft.save({session})

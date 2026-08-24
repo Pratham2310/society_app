@@ -445,3 +445,139 @@ exports.listMembers = async (societyId) => {
     .lean();
 
 };
+
+
+// =======================================================
+// SERVICES ATTACHED TO A SOCIETY
+//
+// The catalogue is shared; which entries a society actually shows its
+// residents is per-society, along with whether one is recommended, an
+// emergency number, or has a local note ("ask for Ramesh").
+//
+// The assign endpoints that already existed are service-centric — one
+// service, many societies — which is the wrong way round when you are
+// looking at a society and want to add something to it.
+// =======================================================
+
+const societyServiceRepo = require("../repository/societyServicerepository");
+
+exports.listSocietyServices = async (societyId) => {
+
+  const rows = await societyServiceRepo.getBySociety(societyId);
+
+  //Flatten the join row and the service into one object, since a
+  //client rendering a list does not care that this is a join.
+  return rows
+    .filter((row) => row.serviceId)
+    .map((row) => ({
+      _id: row.serviceId._id,
+      linkId: row._id,
+      name: row.serviceId.name,
+      category: row.serviceId.category,
+      phone: row.serviceId.phone,
+      address: row.serviceId.address,
+      openTime: row.serviceId.openTime,
+      closeTime: row.serviceId.closeTime,
+      is24Hours: row.serviceId.is24Hours,
+      isActive: row.serviceId.isActive,
+      isRecommended: Boolean(row.isRecommended),
+      isEmergency: Boolean(row.isEmergency),
+      isVisible: row.isVisible !== false,
+      notes: row.notes || "",
+    }));
+
+};
+
+
+exports.addServicesToSociety = async (societyId, serviceIds, options = {}) => {
+
+  const Service = require("../models/Service");
+
+  const society = await Society.findById(societyId).select("_id").lean();
+
+  if (!society) {
+    throw new AppError("Society not found", 404);
+  }
+
+  const ids = (Array.isArray(serviceIds) ? serviceIds : [serviceIds]).filter(Boolean);
+
+  if (!ids.length) {
+    throw new AppError("Pick at least one service", 400);
+  }
+
+  const found = await Service.find({ _id: { $in: ids } }).select("_id").lean();
+
+  if (found.length !== ids.length) {
+    throw new AppError("One or more of those services no longer exists", 404);
+  }
+
+  const added = [];
+  const alreadyThere = [];
+
+  for (const serviceId of ids) {
+
+    //A unique index covers the race; this keeps the common case from
+    //throwing and lets the response say which were already attached.
+    const exists = await societyServiceRepo.exists(serviceId, societyId);
+
+    if (exists) {
+      alreadyThere.push(serviceId);
+      continue;
+    }
+
+    const row = await societyServiceRepo.assign(serviceId, societyId);
+
+    if (options.isRecommended !== undefined || options.isEmergency !== undefined) {
+      await societyServiceRepo.updateLink(row._id, {
+        isRecommended: Boolean(options.isRecommended),
+        isEmergency: Boolean(options.isEmergency),
+      });
+    }
+
+    added.push(serviceId);
+
+  }
+
+  return { added: added.length, alreadyAttached: alreadyThere.length };
+
+};
+
+
+exports.updateSocietyService = async (societyId, serviceId, data) => {
+
+  const link = await societyServiceRepo.exists(serviceId, societyId);
+
+  if (!link) {
+    throw new AppError("That service is not attached to this society", 404);
+  }
+
+  const allowed = {};
+
+  for (const field of ["isRecommended", "isEmergency", "isVisible"]) {
+    if (data[field] !== undefined) allowed[field] = Boolean(data[field]);
+  }
+
+  if (data.notes !== undefined) allowed.notes = String(data.notes).slice(0, 500);
+
+  if (!Object.keys(allowed).length) {
+    throw new AppError("Nothing to update", 400);
+  }
+
+  return societyServiceRepo.updateLink(link._id, allowed);
+
+};
+
+
+exports.removeServiceFromSociety = async (societyId, serviceId) => {
+
+  const removed = await societyServiceRepo.remove(serviceId, societyId);
+
+  if (!removed) {
+    throw new AppError("That service is not attached to this society", 404);
+  }
+
+  //The service itself stays in the catalogue — it is shared, and other
+  //societies may still be using it.
+  return { removed: true };
+
+};
