@@ -75,7 +75,10 @@ its own nav item, since it is an action rather than a place.
 
 **Society** (committee)
 - Overview — dues, expenses, funds, open complaints, urgent notice
-- Resident approvals — the screen the mobile app waits on
+- Residents — the approval queue the mobile app waits on, plus the
+  roster: change someone's flat, or remove them when they move out.
+  Declining or moving hands the old flat back so the real occupant can
+  register
 - Notices — publish, mark urgent, delete
 - Complaints — the queue, filterable by status
 

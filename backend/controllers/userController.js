@@ -91,3 +91,46 @@ exports.updateUserRole = async (req, res) => {
     user: userObj
   });
 };
+// MOVE A RESIDENT TO A DIFFERENT FLAT
+exports.reassignFlat = async (req, res) => {
+
+  const result = await userServices.reassignFlat(
+    req.user,
+    req.params.userId,
+    req.body
+  );
+
+  await audit.record(req.user, audit.ACTIONS.USER_STATUS_CHANGED, {
+    targetType: "User",
+    targetId: req.params.userId,
+    metadata: { movedTo: result.movedTo, action: "flat_reassigned" },
+    req,
+  });
+
+  res.json({
+    success: true,
+    message: `Moved to ${result.movedTo}`,
+    data: result.user,
+  });
+};
+
+// REMOVE A RESIDENT
+exports.removeResident = async (req, res) => {
+
+  const result = await userServices.removeResident(req.user, req.params.userId);
+
+  await audit.record(req.user, audit.ACTIONS.USER_STATUS_CHANGED, {
+    targetType: "User",
+    targetId: req.params.userId,
+    metadata: { action: "resident_removed", flatFreed: result.flatFreed },
+    req,
+  });
+
+  res.json({
+    success: true,
+    message: result.flatFreed
+      ? `Removed. Flat ${result.flatFreed} is free again.`
+      : "Removed.",
+    data: null,
+  });
+};
