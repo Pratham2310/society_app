@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "Society Ledger",
+    "slug": "society-ledger",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "societyledger",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": false,
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#EAF1DC"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.societyledger.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Guards scan resident guest passes at the gate."
+      }
+    },
+    "android": {
+      "package": "com.societyledger.app",
+      "adaptiveIcon": { "backgroundColor": "#EAF1DC" },
+      "permissions": ["CAMERA"]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-notifications",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Guards scan resident guest passes at the gate.",
+          "recordAudioAndroid": false
+        }
+      ]
+    ],
+    "extra": {
+      "apiUrl": "http://localhost:5000/api/v1"
+    }
+  }
+}

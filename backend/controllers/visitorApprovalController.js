@@ -5,6 +5,15 @@ const catchAsync = require("../utils/asyncHandler");
 const { sendResponse } = require("../utils/responseHelper");
 
 
+// The route already names the approval in its path. Reading it from
+// there rather than the body means a client cannot address one
+// request in the URL and a different one in the payload.
+const withApprovalId = (req) => ({
+  ...req.body,
+  approvalId: req.params.approvalId,
+});
+
+
 
 // =======================================================
 // REQUEST APPROVAL
@@ -52,7 +61,7 @@ exports.approveRequest = catchAsync(
 
   async (req, res) => {
 
-    const body = req.body;
+    const body = withApprovalId(req);
 
     const resident = req.user;
 
@@ -90,7 +99,7 @@ exports.rejectRequest = catchAsync(
 
   async (req, res) => {
 
-    const body = req.body;
+    const body = withApprovalId(req);
 
     const resident = req.user;
 
@@ -127,7 +136,7 @@ exports.cancelRequest = catchAsync(
 
   async (req, res) => {
 
-    const body = req.body;
+    const body = withApprovalId(req);
 
     const guard = req.user;
 
