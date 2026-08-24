@@ -85,3 +85,95 @@ exports.listSalespeople = async () => {
     ]);
 
 };
+
+
+// =======================================================
+// UPDATE A SALESPERSON
+//
+// Contact details and account status only. Role is not editable here:
+// turning a salesperson into a superadmin over HTTP would be the same
+// escalation hole the public bootstrap route was.
+// =======================================================
+
+exports.updateSalesperson = async (salespersonId, data) => {
+
+    const User = require("../models/User");
+
+    const allowed = {};
+
+    if (data.name !== undefined) allowed.name = data.name;
+    if (data.phone !== undefined) allowed.phone = data.phone;
+
+    // "rejected" is the schema's word for a disabled account. Suspending
+    // beats deleting for someone who has onboarded societies — the
+    // societies keep their owner, but the person cannot sign in.
+    if (data.status !== undefined) {
+        if (!["approved", "rejected"].includes(data.status)) {
+            throw new AppError("Status must be approved or rejected", 400);
+        }
+        allowed.status = data.status;
+    }
+
+    if (data.email !== undefined) {
+        const clash = await User.findOne({
+            email: data.email,
+            _id: { $ne: salespersonId },
+        });
+        if (clash) {
+            throw new AppError("Email already in use", 409);
+        }
+        allowed.email = data.email;
+    }
+
+    const updated = await User.findOneAndUpdate(
+        { _id: salespersonId, systemRole: "salesperson" },
+        { $set: allowed },
+        { new: true, runValidators: true }
+    );
+
+    if (!updated) {
+        throw new AppError("Salesperson not found", 404);
+    }
+
+    return updated;
+
+};
+
+
+// =======================================================
+// DELETE A SALESPERSON
+//
+// Refused while they still own societies. Removing the account would
+// orphan every society whose createdBy points at it, and those
+// societies drive the whole /sales view. Suspend instead.
+// =======================================================
+
+exports.deleteSalesperson = async (salespersonId) => {
+
+    const User = require("../models/User");
+    const Society = require("../models/Society");
+
+    const salesperson = await User.findOne({
+        _id: salespersonId,
+        systemRole: "salesperson",
+    });
+
+    if (!salesperson) {
+        throw new AppError("Salesperson not found", 404);
+    }
+
+    const owned = await Society.countDocuments({ createdBy: salespersonId });
+
+    if (owned > 0) {
+        throw new AppError(
+            `This salesperson onboarded ${owned} ${owned === 1 ? "society" : "societies"}. ` +
+            `Deleting the account would orphan them — suspend it instead.`,
+            409
+        );
+    }
+
+    await User.deleteOne({ _id: salespersonId });
+
+    return { deleted: true };
+
+};

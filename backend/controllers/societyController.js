@@ -45,3 +45,47 @@ exports.getRegistrationStructure = async (req, res) => {
   });
 
 };
+
+
+// UPDATE SOCIETY
+exports.updateSociety = async (req, res, next) => {
+  try {
+    const society = await societyService.updateSociety(req.params.societyId, req.body);
+    res.json({ message: "Society updated", data: society });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// DELETE SOCIETY
+exports.deleteSociety = async (req, res, next) => {
+  try {
+    const result = await societyService.deleteSociety(
+      req.params.societyId,
+      req.body.confirmName
+    );
+    res.json({ message: "Society deleted", data: result });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ASSIGN SECRETARY
+exports.assignSecretary = async (req, res, next) => {
+  try {
+    const result = await societyService.assignSecretary(req.params.societyId, req.body);
+    res.json({ message: "Secretary assigned", data: result });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// LIST MEMBERS
+exports.listMembers = async (req, res, next) => {
+  try {
+    const members = await societyService.listMembers(req.params.societyId);
+    res.json({ message: "Members fetched successfully", data: members });
+  } catch (err) {
+    next(err);
+  }
+};

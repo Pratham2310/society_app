@@ -17,6 +17,15 @@ router.post("/create-salesperson",authMiddleware, tenantScope,checkSystemRole("s
 //accounts, and they already cannot see each other's societies.
 router.get("/salespeople",authMiddleware, tenantScope,checkSystemRole("superadmin"),adminController.listSalespeople);
 
+//Contact details and account status. Suspending ("rejected") is the
+//usual answer for someone who has onboarded societies — the societies
+//keep their owner while the person loses access.
+router.patch("/salespeople/:id",authMiddleware, tenantScope,checkSystemRole("superadmin"),adminController.updateSalesperson);
+
+//Refused while they still own societies, which would otherwise be
+//orphaned by the delete.
+router.delete("/salespeople/:id",authMiddleware, tenantScope,checkSystemRole("superadmin"),adminController.deleteSalesperson);
+
 //NOTE: superadmin creation is deliberately NOT a route.
 //An unauthenticated endpoint that mints superadmins is a full
 //account-takeover primitive. Use the one-time bootstrap script:
