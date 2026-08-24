@@ -328,7 +328,13 @@ if (process.argv.includes("--check")) {
 
   const current = fs.existsSync(OUTPUT) ? fs.readFileSync(OUTPUT, "utf8") : "";
 
-  if (current !== serialised) {
+  // Compare content, not bytes. Git checks this file out with CRLF on
+  // Windows while the generator writes LF, so a byte comparison calls
+  // the spec stale on every fresh clone and the check stops meaning
+  // anything.
+  const normalise = (text) => text.split("\r\n").join("\n");
+
+  if (normalise(current) !== normalise(serialised)) {
     console.error(
       "\n  openapi.json is out of date. Run `npm run openapi` and commit the result.\n"
     );
