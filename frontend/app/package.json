@@ -9,8 +9,8 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "bundle": "expo export --platform ios --output-dir .expo/bundle-check",
-    "backend": "npm --prefix ../backend run dev",
-    "console": "npm --prefix ../frontend run dev",
+    "backend": "npm --prefix ../../backend run dev",
+    "console": "npm --prefix ../adminportal run dev",
     "dev": "concurrently --names \"BACKEND,APP\" --prefix-colors \"cyan,magenta\" \"npm run backend\" \"npm run start\"",
     "dev:web": "concurrently --names \"BACKEND,CONSOLE\" --prefix-colors \"cyan,magenta\" \"npm run backend\" \"npm run console\""
   },

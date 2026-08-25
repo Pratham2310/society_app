@@ -1,89 +1,67 @@
-# Society Console
+# Frontend
 
-The web console for the three roles that do not use the mobile app:
-**superadmin**, **salesperson**, and the society **committee**
-(chairman, secretary, treasurer, committee member).
+Two clients, one backend.
 
-Residents and security staff use the Expo app instead — signing in here
-with those roles shows a message saying so.
+```
+frontend/
+  adminportal/   Vite + React. Superadmin, admin and salespeople.
+  app/           Expo. Residents, committee and security guards.
+```
 
-## Demo data
+## Which does what
 
-    npm run seed:demo             # from the repo root
-    npm run seed:demo -- --clean  # remove it again
+**adminportal** is the platform's own console: onboarding societies, managing
+salespeople, the service catalogue. It is deliberately *not* where a committee
+does its work — a secretary approving a resident, a treasurer verifying a
+payment and a guard scanning a pass all happen in the app.
 
-Creates two salespeople, four societies with wings and flats generated
-the same way onboarding generates them, a secretary per society, four
-residents awaiting approval, notices, and a service catalogue. Every
-account uses the password in that script's header.
+**app** is everything a society sees. One Expo build serves three kinds of
+person: a guard signs in and lands on the gate, a committee member gets the
+management controls their role carries, and everyone else gets their home.
 
-Accounts worth signing in as:
+That split is why `adminportal` has no finance, amenities or election screens
+even though the backend serves them — those belong to a committee, and a
+committee is on a phone.
 
-| Email | Sees |
-|---|---|
-| `rohitdeshmuk@demo.example.com` | Salesperson — two societies |
-| `sec.emeraldheigh@demo.example.com` | Secretary — 4 approvals, 3 notices |
+## Running them
 
-Note on emails: Joi validates the TLD against the IANA list, so
-addresses ending in `.local` or `.test` are rejected at both
-registration and login. Use a real TLD.
+Each folder has its own `package.json` and installs independently.
 
-## Running it
+```bash
+cd app         && npm install && npm start   # then scan with Expo Go
+cd adminportal && npm install && npm run dev
+```
 
-The backend must be running first, and this origin must be in its
-`CORS_ORIGINS` (http://localhost:5173 already is).
+Both need the backend running. From `app/` there are shortcuts that start it
+alongside:
 
-    cd backend && npm start      # from the repo root: npm start
-    cd frontend && npm install && npm run dev
+```bash
+npm run dev       # backend + the Expo app
+npm run dev:web   # backend + the admin portal
+```
 
-Open http://localhost:5173.
+## Pointing them at the backend
 
-## Keeping types honest
+They resolve it differently, which trips people up.
 
-The backend generates `backend/openapi.json` from its own route table.
-Regenerate the TypeScript types whenever it changes:
+**app** works it out from the Expo dev server — the phone already knows your
+machine's LAN address because it downloaded the bundle from it, so port 5000
+on the same host is assumed. Override with `EXPO_PUBLIC_API_URL` in `app/.env`
+when that guess is wrong (a tunnel, or a deployed backend).
 
-    npm run types
+**adminportal** reads `VITE_API_URL` from `adminportal/.env.development`.
 
-## How it is put together
+A device can never reach `localhost` — that is the device's own loopback, not
+your laptop's. Use the LAN address, and make sure it is in the backend's
+`CORS_ORIGINS`.
 
-- `src/lib/api.ts` — the only place that knows about the
-  `{ success, message, data, meta }` envelope. Screens get `data` or an
-  `ApiError`. Clears the token and bounces to sign-in on a 401; leaves a
-  403 alone, because that means the role is wrong, not the session.
-- `src/lib/auth.tsx` — session plus role helpers mirroring
-  `backend/utils/roles.js`. A superadmin is a superset of a salesperson
-  there, so it is here too.
-- `src/components/Layout.tsx` — navigation is built from the signed-in
-  role rather than shown and then refused.
+## Checks
 
-## Screens
+```bash
+cd app         && npm run typecheck && npm run bundle
+cd adminportal && npm run build
+```
 
-**Platform** (superadmin, salesperson)
-- Dashboard — societies onboarded, residents verified
-- Societies — list, per-society residents/committee/security/staff, and a
-  Manage tab: correct details, assign or replace the secretary, attach
-  services from the catalogue, and (superadmin only) delete an empty
-  society
-- Draft — onboardings started but not finalised; resume or discard
-- Services — the shared catalogue residents see on their map
-- Salespeople — the roster with societies onboarded per person; edit in
-  place, suspend, reactivate, or delete. Superadmin only
-
-The onboarding wizard is reached from Dashboard or Societies rather than
-its own nav item, since it is an action rather than a place.
-
-**Society** (committee)
-- Overview — dues, expenses, funds, open complaints, urgent notice
-- Residents — the approval queue the mobile app waits on, plus the
-  roster: change someone's flat, or remove them when they move out.
-  Declining or moving hands the old flat back so the real occupant can
-  register
-- Notices — publish, mark urgent, delete
-- Complaints — the queue, filterable by status
-
-## Not built yet
-
-Maintenance billing, expenses, community funds, parking, gate logs and
-guest pass oversight. Their endpoints exist but have never been
-exercised, so expect to fix backend bugs as each screen is added.
+`bundle` compiles every route in the app through Metro. It is the strongest
+gate available without a device, and it will not tell you whether anything
+*looks* right.
