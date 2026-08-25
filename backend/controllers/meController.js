@@ -82,3 +82,30 @@ exports.updateMySocietyPayment = asyncHandler(async (req, res) => {
   const data = await meService.updateMySocietyPayment(req);
   sendResponse(res, 200, true, "Payment details updated successfully", data);
 });
+
+// =======================================================
+// BROWSER PUSH
+// =======================================================
+
+// The web client reads `key` off the top level rather than out of
+// `data`, so both are sent. The envelope middleware leaves a payload
+// alone once it is already canonical.
+exports.getWebPushKey = asyncHandler(async (req, res) => {
+  const data = await meService.getWebPushKey();
+  res.status(200).json({
+    success: true,
+    message: "Key fetched successfully",
+    data,
+    key: data.key,
+  });
+});
+
+exports.saveWebPushSubscription = asyncHandler(async (req, res) => {
+  const data = await meService.saveWebPushSubscription(req);
+  sendResponse(res, 200, true, "Browser registered for alerts", data);
+});
+
+exports.removeWebPushSubscription = asyncHandler(async (req, res) => {
+  const data = await meService.removeWebPushSubscription(req);
+  sendResponse(res, 200, true, "Browser removed from alerts", data);
+});

@@ -388,6 +388,12 @@ test("the public surface is exactly the auth and signup flows", () => {
     // layout with occupancy: no names, contacts or ownership.
     "GET /api/v1/societies/{societyId}/structure",
 
+    // The VAPID public key. Public by definition — it is compiled into
+    // every browser client that subscribes — and the web build needs it
+    // before anyone signs in. It grants nothing on its own: pushing
+    // requires the private half, which never leaves the server.
+    "GET /api/v1/users/web-push-key",
+
     // Password reset has to be reachable by someone who cannot sign
     // in — that is the whole point of it. Neither endpoint reveals
     // whether an account exists, and both are throttled: forgot by the

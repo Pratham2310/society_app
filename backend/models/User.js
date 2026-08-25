@@ -163,6 +163,19 @@ const userSchema = new Schema({
     updatedAt: { type: Date, default: Date.now },
     _id: false,
   }],
+  //Browser push, for the web build. Separate from pushTokens because
+  //a Web Push subscription is a URL plus two keys, not an Expo token,
+  //and the two are delivered by different services entirely.
+  webPushSubscriptions: [{
+    endpoint: { type: String, required: true },
+    keys: {
+      p256dh: String,
+      auth: String,
+    },
+    updatedAt: { type: Date, default: Date.now },
+    _id: false,
+  }],
+
   staffCategory:{
     type:String,
     enum:["maid", "cook", "milkman"]

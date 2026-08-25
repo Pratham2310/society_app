@@ -434,3 +434,70 @@ exports.updateMySocietyPayment = async (req) => {
   return society;
 
 };
+
+// =======================================================
+// BROWSER PUSH
+//
+// The web build cannot use Expo tokens, so it registers a Web Push
+// subscription instead. Delivery needs a VAPID key pair; without one
+// configured the public key comes back null and the app disables
+// browser push on its own rather than failing.
+// =======================================================
+
+exports.getWebPushKey = async () => ({
+  key: process.env.VAPID_PUBLIC_KEY || null,
+});
+
+exports.saveWebPushSubscription = async (req) => {
+
+  const subscription = req.body?.subscription;
+  const endpoint = String(subscription?.endpoint || "").trim();
+
+  if (!endpoint) throw new AppError("A push subscription is required.", 400);
+
+  // Same rule as the Expo tokens: a subscription identifies a browser,
+  // not a person. Signing in on a shared machine takes it over.
+  await User.updateMany(
+    { _id: { $ne: req.user.id }, "webPushSubscriptions.endpoint": endpoint },
+    { $pull: { webPushSubscriptions: { endpoint } } }
+  );
+
+  await User.updateOne(
+    { _id: req.user.id },
+    { $pull: { webPushSubscriptions: { endpoint } } }
+  );
+
+  await User.updateOne(
+    { _id: req.user.id },
+    {
+      $push: {
+        webPushSubscriptions: {
+          endpoint,
+          keys: {
+            p256dh: subscription?.keys?.p256dh,
+            auth: subscription?.keys?.auth,
+          },
+          updatedAt: new Date(),
+        },
+      },
+    }
+  );
+
+  return { registered: true };
+
+};
+
+exports.removeWebPushSubscription = async (req) => {
+
+  const endpoint = String(req.body?.endpoint || "").trim();
+
+  if (!endpoint) throw new AppError("An endpoint is required.", 400);
+
+  await User.updateOne(
+    { _id: req.user.id },
+    { $pull: { webPushSubscriptions: { endpoint } } }
+  );
+
+  return { removed: true };
+
+};

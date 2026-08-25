@@ -22,6 +22,8 @@ const MOUNTS = [
   ["/onboarding", require("./onboardingRoutes")],
   ["/sales", require("./salesRoutes")],
   ["/services", require("./serviceRoutes")],
+  ["/amenities", require("./amenityRoutes")],
+  ["/elections", require("./electionRoutes")],
   ["/events", require("./eventRoutes")],
   ["/complaints", require("./complaintRoutes")],
   ["/finance", require("./financeRoutes")],

@@ -39,6 +39,14 @@ router.get("/me/vehicles",auth, tenantScope,asyncHandler(meController.listVehicl
 router.post("/me/vehicles",auth, tenantScope,asyncHandler(meController.addVehicle));
 router.delete("/me/vehicles/:vehicleId",auth, tenantScope,asyncHandler(meController.removeVehicle));
 
+//The VAPID public key. Public by definition — it is compiled into
+//every browser client — and needed before sign-in on the web, so it
+//takes no token.
+router.get("/web-push-key",asyncHandler(meController.getWebPushKey));
+
+router.post("/me/web-push",auth, tenantScope,asyncHandler(meController.saveWebPushSubscription));
+router.delete("/me/web-push",auth, tenantScope,asyncHandler(meController.removeWebPushSubscription));
+
 router.post("/me/push-token",auth, tenantScope,asyncHandler(meController.registerPushToken));
 router.delete("/me/push-token",auth, tenantScope,asyncHandler(meController.removePushToken));
 
