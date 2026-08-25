@@ -9,6 +9,43 @@ const tenantScope =
 const ROLES=require("../utils/roles");
 const role =
   require("../middleware/requireRole").requireSocietyRole;
+const meController=require("../controllers/meController");
+const { requirePermission } =
+  require("../middleware/requirePermission");
+const { PERMISSIONS } = require("../config/permissions");
+
+
+// =======================================================
+// THE SIGNED-IN USER
+//
+// These sit above the /:userId routes on purpose. Express matches in
+// order, and "me" would otherwise be read as an id by anything
+// declared first.
+// =======================================================
+
+router.get("/me",auth, tenantScope,asyncHandler(meController.getMe));
+
+//What this user may do. The app hides any control it does not hold,
+//so a button never appears that would come back 403.
+router.get("/me/permissions",auth, tenantScope,asyncHandler(meController.getMyPermissions));
+
+//An edit the secretary has to approve, not a write.
+router.put("/me/profile",auth, tenantScope,asyncHandler(meController.requestProfileChange));
+
+//A photo carries none of that weight, so it applies immediately.
+router.put("/me/avatar",auth, tenantScope,asyncHandler(meController.setAvatar));
+
+router.get("/me/vehicles",auth, tenantScope,asyncHandler(meController.listVehicles));
+router.post("/me/vehicles",auth, tenantScope,asyncHandler(meController.addVehicle));
+router.delete("/me/vehicles/:vehicleId",auth, tenantScope,asyncHandler(meController.removeVehicle));
+
+router.post("/me/push-token",auth, tenantScope,asyncHandler(meController.registerPushToken));
+router.delete("/me/push-token",auth, tenantScope,asyncHandler(meController.removePushToken));
+
+//The secretary's queue of resident-requested profile edits.
+router.get("/profile-change-requests",auth, tenantScope,requirePermission(PERMISSIONS.MEMBERS_APPROVE),asyncHandler(meController.listProfileChangeRequests));
+router.put("/profile-change-requests/:userId",auth, tenantScope,requirePermission(PERMISSIONS.MEMBERS_APPROVE),asyncHandler(meController.decideProfileChange));
+
 
 
 //register User with full details

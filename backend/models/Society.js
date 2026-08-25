@@ -50,6 +50,18 @@ const societySchema = new Schema(
 
     subscriptionPlan: String,
 
+    // Where residents actually send maintenance and contributions. The
+    // committee sets this, and the app shows it verbatim on the pay
+    // screens — so it is never derived or defaulted, only displayed.
+    payment: {
+      upiId: { type: String, trim: true, default: "" },
+      payeeName: { type: String, trim: true, default: "" },
+      bankName: { type: String, trim: true, default: "" },
+      accountNumber: { type: String, trim: true, default: "" },
+      ifsc: { type: String, trim: true, uppercase: true, default: "" },
+      notes: { type: String, trim: true, default: "" },
+    },
+
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User"

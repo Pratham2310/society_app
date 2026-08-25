@@ -133,6 +133,13 @@ const userSchema = new Schema({
     default: "pending"
   },
 
+  //Uploaded profile photo. A URL, not the image — uploads go to
+  //Cloudinary and only the reference is kept here.
+  avatar: {
+    type: String,
+    default: null
+  },
+
   //OTP is stored as a bcrypt hash, never in plain text.
   otpHash: { type: String, select: false },
   otpExpires: Date,

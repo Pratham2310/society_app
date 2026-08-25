@@ -20,10 +20,34 @@ const {
 } = require("../validation/societyValidation");
 const validateParams =
   require("../middleware/validateParams");
+const meController = require("../controllers/meController");
+const { requirePermission } =
+  require("../middleware/requirePermission");
+const { PERMISSIONS } = require("../config/permissions");
 
 router.post("/", auth, tenantScope,checkSystemRole("superadmin","salesperson"),validate(createSocietySchema), asyncHandler(societyController.createSociety));
 
 router.post("/verify-code", authLimiter, validate(verifySocietyCodeSchema), asyncHandler(societyController.verifySocietyCode));
+
+//=====================================================================
+//THE CALLER'S OWN SOCIETY
+//
+//Declared above /:societyId so "me" is never read as an id. No id is
+//accepted here at all — the answer comes from the token, which is what
+//keeps one society's payment details out of another's app.
+//=====================================================================
+
+router.get("/me", auth, tenantScope, asyncHandler(meController.getMySociety));
+
+//The UPI and bank details residents pay into. Whoever holds the money
+//sets them, which is finance.manage — treasurer, chairman, secretary.
+router.put(
+  "/me/payment",
+  auth, tenantScope,
+  requirePermission(PERMISSIONS.FINANCE_MANAGE),
+  asyncHandler(meController.updateMySocietyPayment)
+);
+
 
 //PUBLIC. Wings, floors and flats for the registration form. The
 //resident has no token yet — register-full is what creates the
