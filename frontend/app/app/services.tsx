@@ -15,7 +15,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { API } from '../constants/api';
 import { COLORS } from '../constants/Colors';
-import { useAuth, useRole } from '../context/AuthContext';
+import { PERM, useAuth, useRole } from '../context/AuthContext';
 
 type CatalogItem = {
   _id: string;
@@ -69,7 +69,13 @@ export default function SocietyMapScreen() {
   const router  = useRouter();
   const insets  = useSafeAreaInsets();
   const { token } = useAuth();
-  const { isSecretary, isManager } = useRole();
+  const { isSecretary, can } = useRole();
+
+  // The backend gates the society map on map.manage,
+  // which is not the same set as the old isManager grouping —
+  // it let a treasurer see controls that would 403, and hid
+  // them from a committee member who does hold the permission.
+  const isManager = can(PERM.MAP_MANAGE);
   const canEdit = isSecretary || isManager;
 
   const [loading, setLoading]   = useState(true);

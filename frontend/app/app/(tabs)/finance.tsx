@@ -5,13 +5,19 @@ import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { API } from '../../constants/api';
 import { COLORS } from '../../constants/Colors';
-import { useAuth, useRole } from '../../context/AuthContext';
+import { PERM, useAuth, useRole } from '../../context/AuthContext';
 
 export default function FinanceScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { token } = useAuth();
-  const { isManager } = useRole();
+  const { can } = useRole();
+
+  // The backend gates the money screens on finance.manage,
+  // which is not the same set as the old isManager grouping —
+  // it let a treasurer see controls that would 403, and hid
+  // them from a committee member who does hold the permission.
+  const isManager = can(PERM.FINANCE_MANAGE);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [dueAmount, setDueAmount] = useState(150);

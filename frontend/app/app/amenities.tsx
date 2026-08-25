@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useConfirm } from '../components/ConfirmDialog';
 import { API } from '../constants/api';
 import { COLORS } from '../constants/Colors';
-import { useAuth, useRole } from '../context/AuthContext';
+import { PERM, useAuth, useRole } from '../context/AuthContext';
 
 type Amenity = {
   _id: string;
@@ -69,7 +69,13 @@ export default function AmenitiesScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { token } = useAuth();
-  const { isManager } = useRole();
+  const { can } = useRole();
+
+  // The backend gates amenities and their bookings on amenities.manage,
+  // which is not the same set as the old isManager grouping —
+  // it let a treasurer see controls that would 403, and hid
+  // them from a committee member who does hold the permission.
+  const isManager = can(PERM.AMENITIES_MANAGE);
 
   const [amenities, setAmenities] = useState<Amenity[]>([]);
   const [loading, setLoading] = useState(true);

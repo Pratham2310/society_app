@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 
-import { useAuth, isPlatform, isCommittee } from "../lib/auth";
+import { useAuth } from "../lib/auth";
 import { ErrorBanner } from "../components/ui";
 
 export function Login() {
@@ -14,7 +14,7 @@ export function Login() {
   const [error, setError] = useState<unknown>(null);
 
   if (user) {
-    return <Navigate to={isCommittee(user) && !isPlatform(user) ? "/society" : "/"} replace />;
+    return <Navigate to="/" replace />;
   }
 
   const submit = async (event: FormEvent) => {
@@ -23,8 +23,10 @@ export function Login() {
     setError(null);
 
     try {
-      const signedIn = await signIn(identifier.trim(), password);
-      navigate(isCommittee(signedIn) && !isPlatform(signedIn) ? "/society" : "/", { replace: true });
+      await signIn(identifier.trim(), password);
+      // Everyone who may be here lands in the same place; Layout turns
+      // away anyone who is not platform.
+      navigate("/", { replace: true });
     } catch (err) {
       setError(err);
     }

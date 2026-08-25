@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-import { AuthProvider, useAuth, isPlatform, isCommittee } from "./lib/auth";
+import { AuthProvider, useAuth, isPlatform } from "./lib/auth";
 import { ApiError } from "./lib/api";
 import { Layout } from "./components/Layout";
 
@@ -12,10 +12,6 @@ import { Onboarding } from "./pages/Onboarding";
 import { Drafts } from "./pages/Drafts";
 import { Services } from "./pages/Services";
 import { Salespeople } from "./pages/Salespeople";
-import { SocietyOverview } from "./pages/SocietyOverview";
-import { Residents } from "./pages/Residents";
-import { Notices } from "./pages/Notices";
-import { Complaints } from "./pages/Complaints";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,11 +28,15 @@ const queryClient = new QueryClient({
   },
 });
 
-/** Platform roles land on the platform overview, committee on theirs. */
+/**
+ * Only platform roles get in. A committee member signing in here is
+ * sent back to the login screen, which tells them to use the app —
+ * approving a resident, publishing a notice and answering a complaint
+ * all happen there now.
+ */
 function Home() {
   const { user } = useAuth();
   if (isPlatform(user)) return <PlatformOverview />;
-  if (isCommittee(user)) return <Navigate to="/society" replace />;
   return <Navigate to="/login" replace />;
 }
 
@@ -59,12 +59,6 @@ export function App() {
               <Route path="drafts" element={<Drafts />} />
               <Route path="services" element={<Services />} />
               <Route path="salespeople" element={<Salespeople />} />
-
-              {/* Society */}
-              <Route path="society" element={<SocietyOverview />} />
-              <Route path="residents" element={<Residents />} />
-              <Route path="notices" element={<Notices />} />
-              <Route path="complaints" element={<Complaints />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />

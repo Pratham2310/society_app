@@ -6,7 +6,7 @@ import Svg, { Circle } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { API, apiFetch } from '../constants/api';
 import { COLORS } from '../constants/Colors';
-import { useAuth, useRole } from '../context/AuthContext';
+import { PERM, useAuth, useRole } from '../context/AuthContext';
 
 type Resident = { id: string; flat: string; name: string; status: 'PAID' | 'PENDING' };
 type ExpenseRow = { id: string; label: string; amount: number; date: string };
@@ -42,7 +42,13 @@ export default function MaintenanceHubScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { token } = useAuth();
-  const { isSecretary, isManager } = useRole();
+  const { isSecretary, can } = useRole();
+
+  // The backend gates maintenance on finance.manage,
+  // which is not the same set as the old isManager grouping —
+  // it let a treasurer see controls that would 403, and hid
+  // them from a committee member who does hold the permission.
+  const isManager = can(PERM.FINANCE_MANAGE);
   const canManage = isSecretary || isManager;
 
   const [tab, setTab] = useState<'payments' | 'expenses'>('payments');

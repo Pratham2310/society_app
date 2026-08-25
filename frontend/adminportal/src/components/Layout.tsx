@@ -1,18 +1,21 @@
 import { NavLink, Outlet, Navigate, useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
 
-import { useAuth, isPlatform, isSuperadmin, isCommittee, roleLabel } from "../lib/auth";
+import { useAuth, isPlatform, isSuperadmin, roleLabel } from "../lib/auth";
 import {
-  IconDashboard, IconSocieties, IconDraft, IconServices,
-  IconPeople, IconApprovals, IconNotice, IconComplaint,
+  IconDashboard, IconSocieties, IconDraft, IconServices, IconPeople,
 } from "./icons";
 
 // =======================================================
 // SHELL
 //
 // Navigation is built from the signed-in role rather than shown and
-// then 403'd. Three audiences share this console: superadmin and
-// salesperson run the platform, committee roles run one society.
+// then 403'd.
+//
+// Only the platform lives here: superadmin and salespeople. A society's
+// own committee works from the app, where their extra controls appear
+// alongside their resident screens according to what their role
+// carries.
 // =======================================================
 
 interface NavItem {
@@ -33,15 +36,6 @@ const NAV: { section: string; items: NavItem[] }[] = [
       { to: "/salespeople", label: "Salespeople", icon: IconPeople, show: isSuperadmin },
     ],
   },
-  {
-    section: "Society",
-    items: [
-      { to: "/society", label: "Dashboard", icon: IconDashboard, show: isCommittee },
-      { to: "/residents", label: "Approvals", icon: IconApprovals, show: isCommittee },
-      { to: "/notices", label: "Notices", icon: IconNotice, show: isCommittee },
-      { to: "/complaints", label: "Complaints", icon: IconComplaint, show: isCommittee },
-    ],
-  },
 ];
 
 export function Layout() {
@@ -55,14 +49,15 @@ export function Layout() {
 
   // A resident or guard has no business in this console — the app is
   // theirs. Saying so beats an empty sidebar.
-  if (!isPlatform(user) && !isCommittee(user)) {
+  if (!isPlatform(user)) {
     return (
       <div style={{ display: "grid", placeItems: "center", minHeight: "100vh", padding: "2rem" }}>
         <div className="card card-pad stack" style={{ gap: ".75rem", maxWidth: "26rem" }}>
-          <h2 style={{ fontSize: "1.1rem" }}>This console is for the committee</h2>
+          <h2 style={{ fontSize: "1.1rem" }}>This console is for the platform team</h2>
           <p style={{ color: "var(--muted)", fontSize: ".95rem" }}>
-            You are signed in as {roleLabel(user)}. Residents and security staff
-            use the mobile app.
+            You are signed in as {roleLabel(user)}. Everyone inside a society —
+            residents, security, and the committee alike — uses the app. Your
+            extra controls appear there, alongside your own home screen.
           </p>
           <button className="btn btn-ghost" onClick={signOut} style={{ alignSelf: "flex-start" }}>
             Sign out
