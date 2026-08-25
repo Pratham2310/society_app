@@ -50,6 +50,14 @@ const societySchema = new Schema(
 
     subscriptionPlan: String,
 
+    // What each flat owes per month and the day it falls due. The
+    // committee sets this once; generating a month's bills reads it
+    // rather than asking again.
+    maintenance: {
+      amount: { type: Number, default: 0, min: 0 },
+      dueDay: { type: Number, default: 10, min: 1, max: 28 },
+    },
+
     // Where residents actually send maintenance and contributions. The
     // committee sets this, and the app shows it verbatim on the pay
     // screens — so it is never derived or defaulted, only displayed.
@@ -59,7 +67,7 @@ const societySchema = new Schema(
       bankName: { type: String, trim: true, default: "" },
       accountNumber: { type: String, trim: true, default: "" },
       ifsc: { type: String, trim: true, uppercase: true, default: "" },
-      notes: { type: String, trim: true, default: "" },
+      note: { type: String, trim: true, default: "" },
     },
 
     createdBy: {

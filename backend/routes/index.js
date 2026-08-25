@@ -24,6 +24,7 @@ const MOUNTS = [
   ["/services", require("./serviceRoutes")],
   ["/events", require("./eventRoutes")],
   ["/complaints", require("./complaintRoutes")],
+  ["/finance", require("./financeRoutes")],
   ["/maintenance", require("./maintenanceRoutes")],
   ["/expenses", require("./expenseRoutes")],
   ["/community-funds", require("./communityFundRoutes")],

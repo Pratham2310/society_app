@@ -408,7 +408,7 @@ exports.getMySociety = async (req) => {
 
 exports.updateMySocietyPayment = async (req) => {
 
-  const { upiId, payeeName, bankName, accountNumber, ifsc, notes } = req.body;
+  const { upiId, payeeName, bankName, accountNumber, ifsc, note } = req.body;
 
   const set = {};
 
@@ -417,7 +417,7 @@ exports.updateMySocietyPayment = async (req) => {
   if (bankName !== undefined) set["payment.bankName"] = String(bankName || "").trim();
   if (accountNumber !== undefined) set["payment.accountNumber"] = String(accountNumber || "").trim();
   if (ifsc !== undefined) set["payment.ifsc"] = String(ifsc || "").toUpperCase().trim();
-  if (notes !== undefined) set["payment.notes"] = String(notes || "").trim();
+  if (note !== undefined) set["payment.note"] = String(note || "").trim();
 
   if (!Object.keys(set).length) {
     throw new AppError("Nothing was changed.", 400);
