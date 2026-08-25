@@ -60,3 +60,79 @@ jobs:
       # clients are generating types from an API that no longer exists.
       - name: OpenAPI spec is current
         run: npm run openapi:check
+
+  # =====================================================================
+  # THE CLIENTS
+  #
+  # Until now only the backend was gated, so a client could break and
+  # merge anyway — both were being checked by hand, which is to say not
+  # reliably. Separate job because it needs no database and can run
+  # alongside.
+  # =====================================================================
+  clients:
+    runs-on: ubuntu-latest
+
+    strategy:
+      # One failing client should not hide the state of the other.
+      fail-fast: false
+      matrix:
+        include:
+          - name: admin portal
+            dir: frontend/adminportal
+            # tsc -b then vite build, so this typechecks and compiles.
+            check: npm run build
+          - name: app
+            dir: frontend/app
+            check: npm run typecheck
+
+    name: ${{ matrix.name }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: ${{ matrix.dir }}/package-lock.json
+
+      - name: Install
+        run: npm ci
+        working-directory: ${{ matrix.dir }}
+
+      - name: Check
+        run: ${{ matrix.check }}
+        working-directory: ${{ matrix.dir }}
+
+  # =====================================================================
+  # THE APP BUNDLES
+  #
+  # Metro resolving and compiling every route is the strongest check
+  # available without a device — it catches a bad import or a missing
+  # native module, which a typecheck does not. It takes a couple of
+  # minutes, so it is its own job rather than slowing the one above.
+  # =====================================================================
+  app-bundle:
+    runs-on: ubuntu-latest
+    needs: clients
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/app/package-lock.json
+
+      - name: Install
+        run: npm ci
+        working-directory: frontend/app
+
+      - name: Dependencies match the SDK
+        run: npx expo-doctor
+        working-directory: frontend/app
+
+      - name: Bundle
+        run: npm run bundle
+        working-directory: frontend/app

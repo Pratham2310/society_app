@@ -2,3 +2,7 @@ node_modules
 dist
 .env.local
 tsconfig.tsbuildinfo
+
+# Vite writes these while the dev server is running and does not always
+# clean them up.
+vite.config.ts.timestamp-*.mjs

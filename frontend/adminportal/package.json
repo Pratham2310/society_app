@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "types": "openapi-typescript ../backend/openapi.json -o src/lib/api-types.ts"
+    "types": "openapi-typescript ../../backend/openapi.json -o src/lib/api-types.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.59.0",
