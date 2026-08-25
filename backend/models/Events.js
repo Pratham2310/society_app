@@ -51,6 +51,33 @@ const eventSchema = new mongoose.Schema({
     }
   ],
 
+  //The app shows a social get-together differently from a society
+  //notice-board event, and asks for a contribution only where there is
+  //a fee to pay.
+  eventType: {
+    type: String,
+    enum: ["Society", "Social"],
+    default: "Society"
+  },
+
+  fee: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+
+  //Who has actually paid, separate from who said they would come.
+  //Attending and having paid are different questions, and the event
+  //screen shows both counts.
+  paidMembers: [
+    {
+      userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      amount: Number,
+      paidAt: { type: Date, default: Date.now },
+      _id: false
+    }
+  ],
+
   status: {
     type: String,
     enum: ["upcoming", "completed", "cancelled"],

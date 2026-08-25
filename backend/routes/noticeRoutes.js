@@ -8,6 +8,7 @@ const checkApproved = require("../middleware/checkApproved");
 const checkRole =
   require("../middleware/requireRole").requireSocietyRole;
 const noticeController = require("../controllers/noticeController");
+const communityController = require("../controllers/communityController");
 
 // ✅ APPLY AUTH FIRST
 router.use(authMiddleware);
@@ -28,6 +29,10 @@ router.get("/", noticeController.getNotices);
 
 // ✅ GET ONE
 router.get("/:id", noticeController.getNoticeById);
+
+//Who has read an urgent notice. The committee needs to know who has
+//not, which is the whole reason the app has the button.
+router.post("/:id/acknowledge", communityController.acknowledgeNotice);
 
 // ✅ UPDATE
 router.put(

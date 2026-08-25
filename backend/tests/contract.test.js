@@ -387,8 +387,16 @@ test("the public surface is exactly the auth and signup flows", () => {
     // account. Gated by the society code, and exposes only a building
     // layout with occupancy: no names, contacts or ownership.
     "GET /api/v1/societies/{societyId}/structure",
+
+    // Password reset has to be reachable by someone who cannot sign
+    // in — that is the whole point of it. Neither endpoint reveals
+    // whether an account exists, and both are throttled: forgot by the
+    // OTP limiter, reset by the auth one.
+    "POST /api/v1/auth/forgot-password",
+
     "POST /api/v1/auth/login",
     "POST /api/v1/auth/register",
+    "POST /api/v1/auth/reset-password",
     "POST /api/v1/auth/send-otp",
     "POST /api/v1/auth/verify-otp",
     "POST /api/v1/societies/verify-code",

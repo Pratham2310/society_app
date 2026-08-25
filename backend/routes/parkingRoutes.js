@@ -3,6 +3,8 @@ const express = require("express");
 const router = express.Router();
 
 const parkingController = require("../controllers/parkingController");
+const communityController = require("../controllers/communityController");
+const asyncHandler = require("../utils/asyncHandler");
 
 const authMiddleware = require("../middleware/authMiddleware");
 const tenantScope =
@@ -15,6 +17,22 @@ router.use(authMiddleware);
 router.use(tenantScope);
 router.use(checkApproved);
 
+
+
+// ===================================================
+// SLOTS
+//
+// What the app's parking screen reads. The older /map and /slot
+// routes stay for the web console; these are the plural, batch-shaped
+// ones the phone uses. Declared ahead of /slot/:id so "batch" is
+// never taken for an id.
+// ===================================================
+
+router.get("/summary", asyncHandler(communityController.getParkingSummary));
+router.get("/slots", asyncHandler(communityController.listParkingSlots));
+router.post("/slots/batch", asyncHandler(communityController.createParkingSlots));
+router.put("/slots/:id", asyncHandler(communityController.updateParkingSlot));
+router.delete("/slots/:id", asyncHandler(communityController.deleteParkingSlot));
 
 
 // ===================================================

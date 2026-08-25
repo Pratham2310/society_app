@@ -32,6 +32,8 @@ const MOUNTS = [
   ["/security", require("./securityRoutes")],
   ["/map", require("./mapRoutes")],
   ["/help", require("./helpRoutes")],
+  ["/helpline", require("./helplineRoutes")],
+  ["/partner-services", require("./partnerServiceRoutes")],
   ["/uploads", require("./uploadRoutes")],
   ["/payments", require("./paymentRoutes")],
   ["/guest-passes", require("./guestPassRoutes")],

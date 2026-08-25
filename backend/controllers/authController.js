@@ -1,5 +1,6 @@
 const authService = require("../services/authService");
 const otpService = require("../services/otpServices");
+const passwordResetService = require("../services/passwordResetService");
 const { sendResponse } = require("../utils/responseHelper");
 
 // REGISTER
@@ -29,6 +30,23 @@ exports.login = async (req, res) => {
 };
 
 // SEND OTP
+// =======================================================
+// PASSWORD RESET
+//
+// Rate limited like the rest of auth. Neither handler reveals whether
+// the account exists — see passwordResetService for why.
+// =======================================================
+
+exports.forgotPassword = async (req, res) => {
+  const data = await passwordResetService.forgotPassword(req.body);
+  sendResponse(res, 200, true, data.message, data);
+};
+
+exports.resetPassword = async (req, res) => {
+  const data = await passwordResetService.resetPassword(req.body);
+  sendResponse(res, 200, true, "Password updated. Sign in with your new password.", data);
+};
+
 exports.sendOtp = async (req, res) => {
     const { phone } = req.body;
 

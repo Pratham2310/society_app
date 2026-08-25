@@ -53,7 +53,17 @@ const noticeSchema = new mongoose.Schema({
     ref: "User"
   },
 
-  validTill: Date
+  validTill: Date,
+
+  //Who has read an urgent notice. The committee needs to know who has
+  //not, which is the whole reason the app has an acknowledge button.
+  acknowledgedBy: [
+    {
+      userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      at: { type: Date, default: Date.now },
+      _id: false
+    }
+  ]
 
 }, { timestamps: true });
 
