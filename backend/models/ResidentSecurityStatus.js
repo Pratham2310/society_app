@@ -25,6 +25,14 @@ const residentSecurityStatusSchema=new mongoose.Schema({
     autoReset:{
         type:Boolean,
         default:true
+    },
+
+    //When a temporary status lapses on its own. The app offers "1 hour"
+    //through "until I change it", and the last of those leaves this
+    //null.
+    expiresAt:{
+        type:Date,
+        default:null
     }
 },{timestamps:true});
 

@@ -97,7 +97,17 @@ const loginUser = async (identifier, password) => {
     throw new AppError("Invalid credentials", 401);
   }
 
-  // 🔥 ONLY RESTRICT NORMAL MEMBERS
+  // A rejected account is rejected whatever it is. The check below
+  // only ever covered plain members, which meant a guard the committee
+  // had dismissed — or a secretary who was removed — kept a working
+  // login, because their role skipped it entirely.
+  if (user.status === "rejected") {
+    throw new AppError("This account has been closed.", 403);
+  }
+
+  // Pending is different: it is the secretary-approval queue that new
+  // residents sit in. Committee and platform accounts are created
+  // ready to use, so only members wait.
   if (user.societyRole === "member" && user.systemRole === "user") {
 
     if (!user.isVerified) {
